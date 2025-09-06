@@ -1,0 +1,84 @@
+; controlling external device with 8086 microprocessor.
+; realistic test for c:\emu8086\devices\Traffic_Lights.exe
+
+#start=Traffic_Lights.exe#
+
+name "traffic"
+.data
+;                        FEDC_BA98_7654_3210
+situation        dw      0000_0011_0000_1100b;virtical green .horizontal red
+
+s1               dw      0000_0010_1000_1010b;virtical yellow .horizontal red
+
+;s2               dw      0000_1000_1010_0010b ;virtical yellow .horizontal green
+
+s3               dw      0000_1000_0110_0001b;virtical red .horizontal green
+
+s4               dw      0000_0100_0101_0001b;virtical red .horizontal yellow
+
+sit_end = $
+
+
+;all_red          equ     0000_0010_0100_1001b
+all_on          equ     0000_1111_1111_1111b
+
+.code
+mov ax, all_on
+out 4, ax
+; wait 0.5 seconds (500000 microseconds) for test led :)
+  mov     cx, 07h    
+  mov     dx, 0a120h
+  mov     ah, 86h
+  int     15h
+  
+mov si, offset situation
+
+
+next:
+mov ax, [si]
+out 4, ax  
+;      FEDCBA9876543210
+cmp ax,0000100001100001b  ;horizontal  green. virtical  red
+je la
+cmp ax,0000001100001100b  ;virtical green .horizontal red
+je lb
+jmp x3
+
+
+la:;horizontal  green. virtical  red
+; wait 24 seconds (24 million microseconds)
+
+  mov     cx, 16eh    
+  mov     dx, 3600h
+  mov     ah, 86h
+  int     15h
+
+ jmp set
+
+
+x3:
+;horizontal or virtical is yellow
+; wait 1 seconds (1 million microseconds)
+
+  mov     cx, 0fh    
+  mov     dx, 4240h
+  mov     ah, 86h
+  int     15h
+
+  jmp set
+
+lb:;virtical green .horizontal red
+; wait 8 seconds (8 million microseconds)
+  mov     cx, 7ah    
+  mov     dx, 1200h
+  mov     ah, 86h
+  int     15h
+
+
+set:
+add si, 2 ; next situation
+cmp si, sit_end
+jb  next
+mov si, offset situation
+jmp next
+

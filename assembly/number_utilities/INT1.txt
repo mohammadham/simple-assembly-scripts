@@ -1,0 +1,76 @@
+
+stacksg segment para stack ;'stack'
+   sb    db       1024 dup(?)
+stacksg ends
+
+datasg  segment para common 'data'
+   
+    TEMP DW 00
+         DW 00  ;/KEY SEARCH 
+
+datasg  ends
+
+codesg  segment para common 'code'
+main    proc    far
+assume  ds:datasg,cs:codesg,es:datasg  
+
+
+        MOV AX,dataSG
+        MOV DS,AX 
+        
+        CLI
+       
+        MOV BX , 0008H
+        MOV AX , [BX]
+        MOV TEMP,AX   ;IP
+        
+        ADD BX ,2
+        MOV AX , [BX] 
+        MOV TEMP+2 ,AX   ;CS
+        
+        MOV BX , 0008H
+        
+        MOV WORD PTR[BX] ,OFFSET CLS
+        
+        MOV WORD PTR[BX+2] ,SEG CLS
+       
+        STI
+       
+        INT 2
+       
+        CLI
+       
+        MOV BX , 0008H
+        MOV AX , TEMP
+        MOV WORD PTR[BX] ,AX
+        MOV AX , TEMP+2
+        MOV WORD PTR[BX+2] ,AX
+        STI 
+        MOV AH ,4CH
+        INT 21H
+        
+          
+ MAIN ENDP
+     
+   cls proc  
+    
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH AX                        ; push DX onto the STACK
+   ;========================================================clear screen and chang color 
+   MOV AX,0600H    ;06 TO SCROLL & 00 FOR FULLJ SCREEN
+   MOV BH,20H    ;ATTRIBUTE 7 FOR BACKGROUND AND 1 FOR FOREGROUND ======2 IS GREEN & 0 IS BLACK
+   MOV CX,0000H    ;STARTING COORDINATES
+   MOV DX,184FH    ;ENDING COORDINATES
+   INT 10H        ;FOR VIDEO DISPLAY 
+   ;===========================================================END CLEAR
+   POP AX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into    
+ 
+ ret
+       
+ cls ENDP 
+  
+codesg ends
+end main

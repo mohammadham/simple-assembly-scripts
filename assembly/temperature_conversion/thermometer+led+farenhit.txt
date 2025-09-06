@@ -1,0 +1,66 @@
+; this short program for emu8086 shows how to keep constant temperature
+; using heater and thermometer (between 60° to 80°),
+; it is assumed that air temperature is lower 60°.
+
+; thermometer.exe is started automatically from c:\emu8086\devices.
+; it is also accessible from the "virtual devices" menu of the emulator.
+
+#start=thermometer.exe#
+#start=led_display.exe#
+
+
+#make_bin#
+; temperature rises fast, thus emulator should be set to run at the maximum speed.
+
+; if closed, the thermometer window can be re-opened from emulator's "virtual devices" menu.
+
+
+
+#make_bin#
+
+name "thermo"
+
+
+
+; set data segment to code segment:
+mov ax, cs
+mov ds, ax
+
+
+start:
+
+in ax, 125 
+
+mov tc ,ax
+mov cx, ax 
+
+mov ax, 9
+imul cx
+mov cx, 5
+idiv cx
+add ax, 32
+out     199, ax  
+dec     ax
+  
+mov ax, tc
+
+cmp al, 49   ;mov down 50
+jl  low
+
+cmp al, 98 ;mov up to 100 farenhit 212
+jle  ok
+jg   high
+
+low:
+mov al, 1
+out 127, al   ; turn heater "on".
+jmp ok
+
+high:
+mov al, 0
+out 127, al   ; turn heater "off". 
+
+ok:
+jmp start   ; endless loop.
+
+ tc dw 00    ; t celsius.

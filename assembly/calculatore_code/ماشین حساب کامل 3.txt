@@ -1,0 +1,197 @@
+DATA   SEGMENT
+        N=15
+TOP     DB 5   DUP(0AH)
+        DB N   DUP(' '),' Please input a number to choose the arithmetic operation', 0DH,0AH
+        DB N   DUP(' '),'             ', 0DH,0AH
+        DB N   DUP(' '),'1-add  2-subtract  3-multiply', 0DH,0AH
+        DB N   DUP(' '),'4-divide  q-return to DOS', 0DH,0AH
+        DB N   DUP(' '),'             ', 0DH,0AH
+        DB N   DUP(' '),'Choice (1.2.3.4.q):$'
+MESG1   DB 0DH,0AH,'Please press number: 1.2.3.4.q !$' 
+MESG2   DB 0DH,0AH,'Please input the first number  :$'
+MESG3   DB 0DH,0AH,'Please input the second number :$'
+MESG4   DB 0DH,0AH,'Play Add :$'
+MESG5   DB 0DH,0AH,'Play Subtract :$'
+MESG6   DB 0DH,0AH,'Play Multiply :$'
+MESG7   DB 0DH,0AH,'Play Divide :$'
+MESG8   DB 0DH,0AH,'The Result :$'
+MESG9   DB 0DH,0AH,'PRESS Q RETURN DOC,ANY PRESS RETURN START!$'
+BUF1    DB  6                   ;  Decimal buffer, can receive 6 characters
+        DB  ?                   ;  Reserved, used for the actual number of characters entered in the DOC when calling on the 10th
+        DB  6 DUP(?)            ;  One symbol bit, four-digit ASCII code, plus a carriage return
+BUF2    DW ?                    ;  After converting the first number to binary, put it here
+BUF3    DB 6 DUP(?),'$'         ;  After converting the result to ASCII code, put it here
+DATA    ENDS
+STACK   SEGMENT STACK'STACK'
+CODE    SEGMENT
+        ASSUME  CS:CODE , DS:DATA
+START:  MOV AX,DATA
+        MOV DS,AX
+        MOV AH,00H                    ;  Set the screen display method
+        MOV AL,2
+        INT 10H 
+        
+        MOV AH,09H                    ;  Show menu
+        MOV DX,OFFSET TOP
+        INT 21H
+
+AA:     MOV AH,01H                    ;  Receive a number from the keyboard
+        INT 21H
+        
+        CMP AL,'1'                    ;  Compared with 1
+        JNE NEXT1                     ;  If it is not equal to 1, go to NEXT1
+        JMP JIA                       ;  If it is equal to 1, go to the addition process
+
+NEXT1:  CMP AL,'2'                    ;  Compared with 2
+        JNE NEXT2                     ;  If it is not equal to 2, go to NEXT2
+        JMP JIAN                      ;  Equal to 2 will go to the subtraction process
+
+NEXT2:  CMP AL,'3'                    ;  Compared with 3
+        JNE NEXT3                     ;  Not equal to 3, go to NEXT3
+        JMP CHENG                     ;  Go to the multiplication program when it equals 3
+
+NEXT3:  CMP AL,'4'                    ;  Compared with 4
+        JNE NEXT4                     ;  If it is not equal to 4, go to NEXT4
+        JMP CHU                       ;  Equal to 4 and go to the division procedure
+
+NEXT4:  CMP AL,'q'                    ;  Compare with q
+        JNE NEXT5                     ;  If it is not equal to q, go to NEXT5
+        MOV AH,4CH                    ;  Back to DOS
+        INT 21H
+
+NEXT5:  MOV AH,09H                    ;  Display MESG1
+        MOV DX,OFFSET MESG1
+        INT 21H
+        JMP AA                        ;  Jump to aa
+
+A1      PROC NEAR
+        MOV AH,09H                    ;  Prompt for the first number
+        MOV DX,OFFSET MESG2
+        INT 21H
+        MOV AH,0AH                    ;  Receive the first number
+        MOV DX,OFFSET BUF1
+        INT 21H
+        CALL A2                       ;  Call A2 for ASCII-binary conversion
+        MOV BUF2,AX                   ;  Put the first number converted binary in BUF2
+        MOV AH,09H                    ;  Prompt for second number
+        MOV DX,OFFSET MESG3
+        INT 21H
+        MOV AH,0AH                    ;  Receive the second number
+        MOV DX,OFFSET BUF1
+        INT 21H
+        CALL A2                       ;  Call A2 to convert the second number to ASCII-binary
+        RET
+A1      ENDP
+
+A2      PROC NEAR
+        MOV CL,BUF1+1                 ;  Put the number of actually typed characters in BUF1+1 into CL
+        MOV CH,0                      ;  CH reset
+        MOV BX,OFFSET BUF1+2          ;  Put the address of the first digit in BX
+        PUSH BX                       ;  Save the value in BX
+        PUSH CX                       ;  Save the value in CX
+L1:     MOV AL,[BX]
+        AND AL,0FH                    ;  Convert ASCII code to decimal
+        MOV [BX],AL                   ;  Store decimal
+        INC BX                        ;  The address of the next digit
+        LOOP L1
+        POP CX                        ;  Restore CX
+        POP BX                        ;  Restore BX
+        MOV AX,0                      ;  Zero accumulation and
+        MOV SI,10
+L2:     MUL SI
+        ADD AL,[BX]
+        ADC AH,0
+        INC BX
+        LOOP L2                       ;  Cumulative multiplication by 10
+L3:     RET 
+A2      ENDP
+
+JIA:    MOV AH,09H                    ;  Addition procedure
+        MOV DX,OFFSET MESG4
+        INT 21H
+        CALL A1                       ;  Call A1
+        ADD AX,BUF2                   ;  Put the converted first number in BUF2 and put it in AX 
+        JMP A3                        ;      Add the second number of
+
+JIAN:   MOV AH,09H                    ;  Subtraction procedure
+        MOV DX,OFFSET MESG5
+        INT 21H
+        CALL A1
+        MOV BX,AX                     ;  Put the converted second number in AX into BX
+        MOV AX,BUF2                   ;  Put the first number in BUF2 after conversion into AX
+        SBB AX,BX                     ;  Subtract two numbers
+        JMP A3
+
+CHENG:  MOV AH,09H                    ;  Multiplication program
+        MOV DX,OFFSET MESG6
+        INT 21H
+        CALL A1
+        MOV BX,AX                     ;  Put the converted second number in AX into BX
+        MOV AX,BUF2                   ;  Put the first number in BUF2 after conversion into AX
+        MUL BX                        ;  Multiply two numbers
+        JMP A3
+
+CHU:    MOV AH,09H                    ;  Division procedure
+        MOV DX,OFFSET MESG7
+        INT 21H
+        CALL A1
+        MOV DX,AX                    ;  Put the converted second number in AX into DX
+        MOV AX,BUF2                  ;  Put the first number in BUF2 after conversion to AX
+        DIV DL                       ;  Divide two numbers, the quotient is in AL
+        MOV AH,0H                    ;  Clear AH
+        JMP A3
+
+A3:     MOV BUF3,'+'                 ;  Put BUF3'+'
+        CMP AX,0                     ;  Compare the result to 0
+        JGE L4                       ; AX>0 Go to L4
+        NEG AX                       ; AX<0 invert AX
+        MOV BUF3,'-'                 ;  Put BUF3'-'
+L4:     CWD
+        MOV BX,10000
+        DIV BX                       ;  The quotient is the first digit in AL, and the remainder is in DX
+        CALL BB
+        MOV BUF3+1,AL                ;  Put the first number in the BUF3+1 unit
+        MOV AX,DX                    ;  Put the remainder in DX into AX
+        CWD
+        MOV BX,1000
+        DIV BX                       ;  The quotient is the second digit in AL, and the remainder is in DX
+        CALL BB
+        MOV BUF3+2,AL                ;  Put the second number in the BUF3+2 unit
+        MOV AX,DX                    ;  Put the remainder in DX into AX
+        MOV BL,100
+        DIV BL                       ;  The quotient is the third digit in AL, and the remainder is in AH
+        CALL BB
+        MOV BUF3+3,AL                ;  Put the third number in the BUF3+3 unit
+        MOV AL,AH                    ;  Put the remainder in AH into AL
+        CBW
+        MOV BL,10
+        DIV BL                       ;  The quotient is the fourth digit in AL, and the remainder is in A
+        CALL BB
+        MOV BUF3+4,AL                ;  Put the fourth number in the BUF3+4 unit
+        ADD AH,30H                   ;  Convert one's digit to ASSCII code
+        MOV BUF3+5,AH                ;  Put the fifth number in the BUF3+5 unit
+        MOV AH,09H                   ;  Prompt result
+        MOV DX,OFFSET MESG8
+        INT 21H
+        MOV AH,09H
+        MOV DX,OFFSET BUF3            ;  Display the results in the BUF3 buffer
+        INT 21H
+        MOV AH,09H                    ;  Prompt whether to return to DOS or recalculate
+        MOV DX,OFFSET TOP
+        INT 21H
+        JMP NEXT5                     ;  Recalculation of other figures
+
+BB      PROC NEAR
+;        CMP AL,0H                     ;  Compare with zero
+;        JE L5
+        JMP L6
+;L5:     MOV AL,20H                    ;  Equal to zero, assign AL space
+        JMP L7
+L6:     ADD AL,30H                    ;  Not equal to zero, convert the number to ASSCII code
+L7:     RET
+BB      ENDP
+
+A4:     MOV AH,4CH                    ;  AL equals'Q'Just return to DOS
+        INT 21H
+CODE    ENDS
+        END START

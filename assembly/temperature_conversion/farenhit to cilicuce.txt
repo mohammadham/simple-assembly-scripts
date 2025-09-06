@@ -1,0 +1,267 @@
+;------------STACK SEGMENT------------
+S SEGMENT 
+    
+    STACK DB 128 DUP("?")
+    
+S ENDS                                               
+;------------DATA SEGMENT-------------
+D SEGMENT      
+                   
+                   
+
+      MSG_CTOF DB 0Dh,0Ah,' Enter Celsius Between -999 to 999:  ','$'
+
+      MSG_FHRENHEIT DB 0Dh,0Ah,' FARENHIET :  ','$'
+      MSG_CELSIUS DB   0Dh,0Ah,' CELSIUS :  ','$'       
+      MSG_SEPERATOR DB 0Dh,0Ah,'------------------------------------------------------------------',0Dh,0Ah,'$'  
+      MSG_NOT_VALID  DB  0Dh,0Ah,' Not Valid!!!','$'
+
+      CELSIUS DW ?
+      FHRENHEIT DW ?
+      BUFFER1 DB 5,?,4 DUP(?)       
+      BUFFER2 DB 5,?,4 DUP(?)
+      BINARY DW ?      
+      ;------------------------
+  
+      
+    
+D ENDS
+;------------CODE SEGMENT-------------
+C SEGMENT 
+    
+    MAIN PROC FAR
+        
+        ASSUME CS:C,SS:S,DS:D,ES:D
+              MOV AX,D
+              MOV DS,AX 
+              MOV ES,AX
+              
+        LOOOP:
+        
+              CALL CONVERT_CELSIUS_TO_FAHRENHEIT
+
+              MOV  DX,OFFSET MSG_SEPERATOR  
+              CALL PRINT_STRING
+
+              MOV AH, 0   ; WAIT FOR ANY KEY....
+              INT 16H 
+
+               
+              MOV AH,4CH
+              INT 21H 
+        
+    MAIN ENDP 
+    ;-----------------------------------------------------------------------------------------------------------
+  
+    COUNT_STRING_LENGTH PROC 
+              
+              MOV  DX,0 
+        AGAIN:MOV  AL,[BX]
+              CMP  AL,0
+              JE   FINISH
+              INC  BX
+              INC  DX
+              JMP  AGAIN
+       FINISH:MOV  CX,DX 
+              RET     
+      
+    COUNT_STRING_LENGTH ENDP  
+
+     ;-----------------------------------------------------------------------------------------------------------
+     PRINT_STRING PROC
+              
+              MOV AH,9
+              INT 21H
+              RET
+      
+     PRINT_STRING ENDP 
+    
+    ;-----------------------------------------------------------------------------------------------------------
+    
+    CONVERT_CELSIUS_TO_FAHRENHEIT PROC
+      
+    GET_AGAIN:MOV  DX,OFFSET MSG_SEPERATOR  
+              CALL PRINT_STRING
+              MOV  DX,OFFSET MSG_CTOF
+              CALL PRINT_STRING
+              MOV DX, OFFSET BUFFER1
+              CALL GET_STRING_FROM_USER 
+              MOV BX, 0
+              MOV BL, BUFFER1[1]
+              MOV BUFFER1[BX+2], 0
+              LEA  SI,BUFFER1 + 2
+              CALL TOBIN   
+              MOV BINARY,CX
+              CMP  CX , 999
+              JLE  P1
+              MOV  DX,OFFSET MSG_NOT_VALID
+              CALL PRINT_STRING
+              JMP   GET_AGAIN
+           P1:CMP  CX , -999
+              JGE   P2
+              MOV  DX,OFFSET MSG_NOT_VALID
+              CALL PRINT_STRING
+              JMP  GET_AGAIN
+           P2:MOV  DX,OFFSET MSG_SEPERATOR
+              CALL PRINT_STRING
+              MOV  DX,OFFSET MSG_CELSIUS
+              CALL PRINT_STRING 
+              MOV  BX,CX
+              CALL PRINT_DECIMAL 
+              MOV  DX,OFFSET MSG_SEPERATOR
+              CALL PRINT_STRING
+              MOV  DX,OFFSET MSG_FHRENHEIT
+              CALL PRINT_STRING
+              MOV  CX,BINARY
+              MOV AX, 9
+              IMUL CX
+              MOV CX, 5
+              IDIV CX
+              ADD AX, 32
+              MOV CELSIUS, AX
+              MOV BX, CELSIUS
+              CALL PRINT_DECIMAL  ; PRINT BX
+              RET
+              
+              
+      
+    CONVERT_CELSIUS_TO_FAHRENHEIT ENDP
+    
+    ;-----------------------------------------------------------------------------------------------------------
+  
+    
+    ;-----------------------------------------------------------------------------------------------------------
+    GET_STRING_FROM_USER PROC
+              
+              
+              MOV AH, 0AH
+              INT 21H         
+              RET 
+              
+    GET_STRING_FROM_USER ENDP
+    ;----------------------------------------------------------------------------------------------------------- 
+    TOBIN   PROC    NEAR
+                    PUSH    DX
+                    PUSH    AX
+                    PUSH    SI
+                  
+            JMP PROCESS
+                   
+            ;==== LOCAL VARIABLES ====      
+            MAKE_MINUS      DB      ?       ; USED AS A FLAG.
+            TEN             DW      10      ; USED AS MULTIPLIER.
+            ;=========================
+            
+            PROCESS:       
+            
+                    ; RESET THE ACCUMULATOR:
+                    MOV     CX, 0
+            
+                    ; RESET FLAG:
+                    MOV     CS:MAKE_MINUS, 0
+            
+            NEXT_DIGIT:
+            
+                ; READ CHAR TO AL AND
+                ; POINT TO NEXT BYTE:
+                MOV     AL, [SI]
+                INC    SI     
+            
+                    ; CHECK FOR END OF STRING:
+                    CMP     AL, 0  ; END OF STRING?
+                    JNE     NOT_END
+                    JMP     STOP_INPUT       
+            NOT_END:
+            
+                    ; CHECK FOR MINUS:
+                    CMP     AL, '-'
+                    JNE     OK_DIGIT
+                    MOV     CS:MAKE_MINUS, 1 ; SET FLAG!
+                JMP     NEXT_DIGIT
+               
+            OK_DIGIT:
+            
+                    ; MULTIPLY CX BY 10 (FIRST TIME THE RESULT IS ZERO)
+                    PUSH    AX
+                    MOV     AX, CX
+                    MUL     CS:TEN                  ; DX:AX = AX*10
+                    MOV     CX, AX
+                    POP     AX
+            
+                ; IT IS ASSUMED THAT DX IS ZERO - OVERFLOW NOT CHECKED!
+            
+                    ; CONVERT FROM ASCII CODE:
+                    SUB     AL, 30H
+            
+                    ; ADD AL TO CX:
+                    MOV     AH, 0
+                    MOV     DX, CX      ; BACKUP, IN CASE THE RESULT WILL BE TOO BIG.
+                    ADD     CX, AX
+                   
+                    ; ADD - OVERFLOW NOT CHECKED!
+            
+                    JMP     NEXT_DIGIT
+            
+            STOP_INPUT:
+            
+                    ; CHECK FLAG, IF STRING NUMBER HAD '-'
+                    ; MAKE SURE THE RESULT IS NEGATIVE:
+                    CMP     CS:MAKE_MINUS, 0
+                    JE      NOT_MINUS
+                    NEG     CX
+                   
+            NOT_MINUS:
+            
+                    POP     SI
+                    POP     AX
+                    POP     DX
+                    RET
+      TOBIN        ENDP
+;-----------------------------------------------------------------------------------------------------------  
+
+
+      PRINT_DECIMAL PROC 
+            
+             
+             MOV   DX,0
+             MOV   CX,0
+             MOV   AX,BX
+             CMP   AX,0
+             JE    ZERO
+             CMP   AX,0
+             JL    NEGATIVE
+             JMP   DIVISION
+    NEGATIVE:PUSH  AX
+             MOV   AL,'-'
+             MOV   AH,0EH
+             INT   10H
+             POP   AX
+             NEG   AX
+             JMP   DIVISION
+        ZERO:MOV   AL,'0'
+             MOV   AH,0EH
+             INT   10H
+             RET 
+        
+    DIVISION:MOV   DX,0
+             CMP   AX,0
+             JE    DISPLAY2
+             MOV   BX,10
+             DIV   BX
+             PUSH  DX
+             INC   CX
+             JMP   DIVISION
+             
+    DISPLAY2:POP   AX
+             ADD   AL,30H
+             MOV   AH,0EH
+             INT   10H  
+             LOOP  DISPLAY2  
+             RET  
+            
+            
+      PRINT_DECIMAL ENDP
+      
+;-----------------------------------------------------------------------------------------------------------      
+C ENDS
+    END MAIN

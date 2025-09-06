@@ -1,0 +1,174 @@
+; controlling external device with 8086 microprocessor.
+; realistic test for c:\emu8086\devices\Traffic_Lights.exe
+
+#start=Traffic_Lights.exe#   
+#start=led_display.exe#
+
+name "traffic"
+
+mov ax, all_red
+out 4, ax
+mov     ax, 0
+out     199, ax
+
+
+mov si, offset situation
+
+
+next:
+mov ax, [si]
+out 4, ax
+mov bx, ax
+
+; wait 5 seconds (5 million microseconds)
+;mov     cx, 5Bh    ;    004C4B40h = 5,000,000
+;mov     dx, 8D80h
+;mov     ah, 86h
+;int     15h
+  
+   
+cmp bx, situation
+jne l1
+call horizintal
+jmp nextsit
+
+l1: cmp bx, s1 
+jne l2
+call yellow
+jmp nextsit
+
+l2: cmp bx, s2
+jne l3
+call vertical
+jmp nextsit 
+
+l3: cmp bx, s3
+jne l4
+call yellow
+jmp nextsit 
+
+l4: cmp bx, s4
+jne l5
+call horizintal
+jmp nextsit
+
+l5: cmp bx, s5
+jne l6
+call yellow
+jmp nextsit
+
+l6: cmp bx, s6
+jne l7
+call vertical
+jmp nextsit 
+
+l7: cmp bx, s7
+call yellow
+
+   
+
+
+
+
+nextsit:
+add si, 2 ; next situation
+cmp si, sit_end
+jb  next
+mov si, offset situation
+jmp next
+
+ 
+ 
+           
+           
+horizintal proc
+    
+      mov ax, 3 
+      mov cx, 3
+   hgreenlight: 
+      push cx  
+      push ax
+      out 199, ax
+      mov     cx, 0Fh 
+      mov     dx, 4240h
+      mov     ah, 86h
+      int     15h   
+      pop ax  
+      pop cx
+      dec ax
+      loop hgreenlight 
+      mov     ax, 0
+      out     199, ax
+      mov     cx, 07h 
+      mov     dx, 0A120h
+      mov     ah, 86h
+      int     15h
+         
+      ret
+    
+horizintal endp   
+
+
+vertical proc
+           
+      mov ax, 2
+      mov cx, 2
+   vlgreenlight: 
+      push cx  
+      push ax
+      out 199, ax
+      mov     cx, 0Fh 
+      mov     dx, 4240h
+      mov     ah, 86h
+      int     15h   
+      pop ax  
+      pop cx
+      dec ax
+      loop vlgreenlight 
+      mov     ax, 0
+      out     199, ax
+      mov     cx, 07h 
+      mov     dx, 0A120h
+      mov     ah, 86h
+      int     15h
+         
+      ret
+    
+vertical endp
+
+yellow proc
+    
+      mov     ax, 1 
+      shr     ax, 1
+      out     199, ax
+      mov     cx, 07h 
+      mov     dx, 0A120h
+      mov     ah, 86h
+      int     15h 
+      mov     ax, 0
+      out     199, ax
+      ret
+    
+yellow endp
+               
+;htime dw 005Bh
+;ltime dw 8D80h 
+;temp dw 0000h 
+;mulnum dw 0003h
+;                        FEDC_BA98_7654_3210
+situation        dw      0000_0011_0000_1001b ; h green
+s1               dw      0000_0010_1000_1001b ; h yellow
+s2               dw      0000_1000_0100_1001b ; vl green
+s3               dw      0000_0100_0100_1001b ; vl yellow
+s4               dw      0000_0010_0100_1100b ; h green
+s5               dw      0000_0010_0100_1010b ; h yellow
+s6               dw      0000_0010_0110_0001b ; vr green
+s7               dw      0000_0010_0101_0001b ; vr yellow
+sit_end = $
+
+
+all_red          equ     0000_0010_0100_1001b
+
+              
+              
+

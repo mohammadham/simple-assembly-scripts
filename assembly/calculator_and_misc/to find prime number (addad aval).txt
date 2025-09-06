@@ -1,0 +1,164 @@
+
+ PRINTSTR MACRO STR  
+ pusha   
+MOV AH,09H
+LEA DX,STR
+INT 21H 
+popa
+ENDM   
+
+
+GETSTR1 MACRO STR
+LEA SI , STR
+MOV DX , SI
+MOV AH, 0AH
+INT 21H
+ENDM
+ OUTDEC MACRO str
+   ; this procedure will display a decimal number
+   ; input : AX
+   ; output : none
+
+   PUSHa                       ; push BX onto the STACK
+                        ; push DX onto the STACK
+   mov ax , str
+   CMP AX, 0                      ; compare AX with 0
+   JGE @START                     ; jump to label @START if AX>=0
+
+   PUSH AX                        ; push AX onto the STACK
+
+   MOV AH, 2                      ; set output function
+   MOV DL, "-"                    ; set DL='-'
+   INT 21H                        ; print the character
+
+   POP AX                         ; pop a value from STACK into AX
+
+   NEG AX                         ; take 2's complement of AX
+
+   @START:                        ; jump label
+
+   XOR CX, CX                     ; clear CX
+   MOV BX, 10                     ; set BX=10
+
+   @OUTPUT:                       ; loop label
+     XOR DX, DX                   ; clear DX
+     DIV BX                       ; divide AX by BX
+     PUSH DX                      ; push DX onto the STACK
+     INC CX                       ; increment CX
+     OR AX, AX                    ; take OR of Ax with AX
+   JNE @OUTPUT                    ; jump to label @OUTPUT if ZF=0
+
+   MOV AH, 2                      ; set output function
+
+   @DISPLAY:                      ; loop label
+     POP DX                       ; pop a value from STACK to DX
+     OR DL, 30H                   ; convert decimal to ascii code
+     INT 21H                      ; print a character
+   LOOP @DISPLAY                  ; jump to label @DISPLAY if CX!=0
+
+   POPa                        ; pop a value from STACK into DX
+                         ; pop a value from STACK into BX
+
+                            ; return control to the calling procedure
+ENDM
+GETNUM MACRO STR ;GET POSTIVE NUM
+PUSHA     
+    mov ax,00   ;RETURN NUMBER IN AX
+    ll1:
+    GETSTR1 NUMBER
+	mov si , 02   
+	mov ax,00 
+	cmp NUMBER[si],0DH
+	jE  @ERROR
+	cmp NUMBER[si],'-'
+	jNE mosbat
+	@ERROR:
+	PRINTSTR mass
+	
+	mov ax , 00
+	jmp ll1
+	
+	mosbat:
+	mov bx, 00
+	mov bl , NUMBER[si]
+	CMP BL , 57
+	JG EX1
+	CMP BL , 48
+	JL EX1
+	sub bl , 30h
+	add ax, bx
+	inc si   
+	cmp NUMBER[si], 57
+	jg ex1
+	cmp NUMBER[si], 48
+	jl ex1 
+	mov bx , 10
+	mul bx
+	jmp mosbat 
+ex1:                                
+  MOV STR , Al   
+ POPA                     
+ENDM 
+
+
+Data Segment  
+    space db ' , $' 
+    BREAK DB 10, 13,'$'
+    arrprime db 30 dup (?) 
+     NUMBER db 6 dup('$')  
+      mass db 13,10,"Enter a unsinged number !! ",0DH,0AH,'ENTER NEW NUMBER POSTIVED :$'
+    i db 02h 
+    num db 00
+Data Ends
+
+Code Segment
+    Assume cs:code, ds:data
+Begin:   
+    mov ax, data
+    mov ds, ax
+    mov es, ax
+    getnum num 
+    printstr break
+    mov dh,num
+    mov dl, 01h
+    mov cx, 10h 
+    
+    lea di, arrprime
+
+    L1:
+       mov bl, 02
+       add dl, 01h
+       cmp dh, dl
+       je exit
+       cmp dl, 02h
+       je Insert
+       cmp dl, 03h
+       je Insert
+       cmp dl, 04h
+       jge Logic
+
+    Logic:
+          mov ah, 00
+          mov al, dl
+          div bl
+          cmp ah, 00
+      je L1
+          add bl, 01h
+          cmp bl, al  
+          jle Logic
+      jmp insert
+
+    Insert: 
+    mov ax , 00
+    mov al , dl
+        outdec ax 
+        printstr space
+       mov [di], dl
+       inc di
+       loop L1
+
+    Exit:
+       mov ax, 4c00h
+       int 21h
+Code Ends
+End Begin

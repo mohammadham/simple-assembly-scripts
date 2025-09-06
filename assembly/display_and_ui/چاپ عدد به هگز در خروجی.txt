@@ -1,0 +1,20 @@
+
+;print hex number (fund in net)
+
+PrtHex     proc near uses ax bx cx
+
+           mov  bx,offset Hex
+           mov  cx,04h
+HexLoop:   push  ax
+           mov  al,ah
+           shr  al,04h
+           xlatb
+           mov  dl,al
+           mov  ah,02
+           int  21h
+           pop  ax
+           shl  ax,04h
+           loop HexLoop
+
+           ret
+PrtHex     endp

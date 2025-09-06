@@ -1,0 +1,77 @@
+.MODEL SMALL  
+.STACK 100H  
+.DATA  
+  
+; The string to be printed  
+STRING DB 'enter a number : ', '$'     
+    PROMPT  DB  ' 1 $'
+    PROMPT1  DB  ' 0 $'
+     
+    BREAK DB 10, 13,'$'
+    
+    
+    ROW_NUM DB 0 ,'$'
+    
+
+  
+.CODE  
+MAIN PROC FAR  
+MOV AX,@DATA  
+MOV DS,AX   
+
+
+        LEA DX, STRING               ; load and display the string PROMPT
+        MOV AH, 9                                                    
+        INT 21H
+        
+        
+        MOV ROW_NUM , 0
+     
+     MOV AH , 01H
+     INT 21H 
+     AND AL,0FH           ;convert from ascii value to real value
+     MOV ROW_NUM , AL       
+
+     MOV cl , ROW_NUM
+     MOV ch , 00  
+     
+      LEA DX, BREAK               ; load and display the string PROMPT
+        MOV AH, 9                                                    
+        INT 21H
+
+     LOP1: 
+     
+     MOV BP , CX
+     MOV CL , ROW_NUM
+     MOV CH , 00
+     LOP2:
+     
+     CMP BP , CX
+     JZ Equal
+      LEA DX, PROMPT1               ; load and display the string PROMPT
+     MOV AH, 9                                                    
+     INT 21H
+     JMP NOTEqual
+     Equal:
+     LEA DX, PROMPT               ; load and display the string PROMPT
+     MOV AH, 9                                                    
+     INT 21H
+     
+     
+     NOTEqual:
+    loop lop2 
+    
+    LEA DX, BREAK               ; load and display the string PROMPT
+        MOV AH, 9                                                    
+        INT 21H
+    
+  MOV CX , BP
+  loop lop1
+  
+
+; interrupt to exit
+MOV AH, 4CH 
+INT 21H  
+  
+MAIN ENDP  
+END MAIN

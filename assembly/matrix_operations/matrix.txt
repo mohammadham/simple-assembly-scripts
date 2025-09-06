@@ -1,0 +1,92 @@
+org 100h  
+include 'emu8086.inc'    
+DEFINE_PRINT_NUM
+DEFINE_SCAN_NUM
+DEFINE_PRINT_NUM_UNS 
+jmp start
+t dW 0
+r dw 0
+c dw 0 
+BREAK DB 10, 13,'$' 
+array dw 100 
+
+
+start:	
+CALL SCAN_NUM
+mov r , cx  
+PRINTSTR BREAK
+CALL SCAN_NUM
+mov c , cx 
+PRINTSTR BREAK
+
+push r
+;push c
+mov si,0
+lop1:
+mov bx, c
+lop2: 
+call cls
+CALL SCAN_NUM
+mov array[si],cx
+inc si
+dec bx
+cmp bx, 0
+jg lop2
+dec r
+cmp r, 0
+jg lop1
+call cls
+pop r
+push r
+mov si,0
+lop11:
+mov bx, c
+lop22:
+mov ax,array[si]
+call print_num
+
+inc si
+dec bx
+cmp bx, 0
+jg lop22
+dec r
+cmp r, 0
+jg lop11
+
+mov ah, 0
+int 16h		
+
+hlt
+
+
+ 
+PRINTSTR MACRO STR  
+push ax 
+push dx
+
+MOV AH,09H
+LEA DX,STR
+INT 21H    
+pop dx
+pop  ax
+ENDM  
+
+  cls proc  
+    
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+   ;========================================================clear screen and chang color 
+   MOV AX,0600H    ;06 TO SCROLL & 00 FOR FULLJ SCREEN
+   MOV BH,20H    ;ATTRIBUTE 7 FOR BACKGROUND AND 1 FOR FOREGROUND ======2 IS GREEN & 0 IS BLACK
+   MOV CX,0000H    ;STARTING COORDINATES
+   MOV DX,184FH    ;ENDING COORDINATES
+   INT 10H        ;FOR VIDEO DISPLAY 
+   ;===========================================================END CLEAR
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into    
+ 
+ ret
+       
+ cls ENDP

@@ -1,0 +1,143 @@
+;چاپ ماتریسی که ابعاد و درایه ها را از کاربر دریافت میکند 
+
+                         .MODEL SMALL  
+                         
+                         
+PRINTSTR MACRO STR
+MOV AH,09H
+LEA DX,STR
+INT 21H
+ENDM   
+
+
+GETSTR1 MACRO STR
+LEA SI , STR
+MOV DX , SI
+MOV AH, 0AH
+INT 21H
+ENDM 
+
+PRINTSTR1 MACRO STR
+
+LEA si , STR
+ADD si , 2
+MOV DX , si 
+MOV AH , 09H
+INT 21H
+ENDM
+                          
+.STACK 100H  
+.DATA  
+  
+; The string to be printed  
+STRING1_1 DB 'enter a ROW number : ', '$' 
+STRING1_2  DB 'enter a COL number : ', '$' 
+STRING DB 'enter a number : ', '$' 
+
+STRING2 DB ' ' , '$'    
+    PROMPT  DB 00
+    PROMPT1  DB 00
+    array DB 80 dup('$'),'$'
+     
+    BREAK DB 10, 13,'$'
+    
+    
+    ROW_NUM DB 0 ,'$'
+    
+
+  
+.CODE  
+MAIN PROC FAR  
+MOV AX,@DATA  
+MOV DS,AX   
+
+
+        LEA DX, STRING1_1               ; load and display the string STRING1_1 
+        MOV AH, 9                                                    
+        INT 21H
+        
+        
+        MOV ROW_NUM , 0
+     
+     MOV AH , 01H
+     INT 21H 
+     AND AL,0FH           ;convert from ascii value to real value
+     MOV PROMPT, AL  
+
+     PRINTSTR BREAK
+     PRINTSTR STRING1_2  			 ; load and display the string STRING1_2 
+
+
+      MOV AH , 01H
+     INT 21H 
+     AND AL,0FH           ;convert from ascii value to real value
+     MOV PROMPT1 , AL       
+
+     MOV cl , PROMPT
+     MOV ch , 00  
+     
+      LEA DX, BREAK               ; load and display the string PROMPT
+        MOV AH, 9                                                    
+        INT 21H
+        
+        MOV DI , 00 			;LOCATION ARRAY VALUE
+
+     LOP1:                   ;LOOP FOR GIVE ARRAY VALUE
+   
+     MOV BP , CX
+     MOV CL , PROMPT1
+     MOV CH , 00
+     LOP2:
+     
+     PRINTSTR STRING
+     
+     GETSTR1 ARRAY[DI]    ;ARRAY VALUE
+     
+     PRINTSTR BREAK   
+     
+     ADD DI , 1 
+     MOV ARRAY[DI], '$'
+     ADD DI, 1
+
+    loop lop2 
+    
+    LEA DX, BREAK               ; load and display the string PROMPT
+        MOV AH, 9                                                    
+        INT 21H
+    
+  MOV CX , BP
+  loop lop1
+           
+           
+MOV DI , 00 
+MOV cl , PROMPT
+     MOV ch , 00  
+     
+
+     LOP3:   ;LOOP FOR PRINT ARRAY VALUE 
+     
+     MOV BP , CX
+     MOV CL , PROMPT1
+     MOV CH , 00
+    LOP4:  
+    PRINTSTR STRING2
+     PRINTSTR1 ARRAY[DI]
+     
+     ADD DI , 2
+     
+
+    loop lop4 
+    
+    LEA DX, BREAK               ; load and display the string PROMPT
+        MOV AH, 9                                                    
+        INT 21H
+    
+  MOV CX , BP
+  loop loP3          
+
+; interrupt to exit
+MOV AH, 4CH 
+INT 21H  
+  
+MAIN ENDP  
+END MAIN

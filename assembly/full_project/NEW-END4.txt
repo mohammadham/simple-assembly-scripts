@@ -1,0 +1,453 @@
+GETSTR MACRO STR
+MOV AH,0AH
+LEA DX,STR
+INT 21H
+ENDM 
+
+GETSTR1 MACRO STR
+LEA SI , STR
+MOV DX , SI
+MOV AH, 0AH
+INT 21H
+ENDM 
+
+PRINTSTR MACRO STR
+MOV AH,09H
+LEA DX,STR
+INT 21H
+ENDM
+  
+PRINTSTR1 MACRO STR
+
+LEA si , STR
+ADD si , 2
+MOV DX , si 
+MOV AH , 09H
+INT 21H
+
+ENDM
+
+
+stacksg segment para stack ;'stack'
+   sb    db       1024 dup('0')
+   se    db      3 dup (?)
+   s_top    label   word 
+stacksg ends
+
+datasg  segment para common 'data'
+    ;/-----------------------------------------------print menu--------     
+    p1 db 'Please enter name:',0DH,0AH,'$'
+    p2 db 'Please enter family:',0DH,0AH,'$'
+    p3 db 'Please enter age:',0DH,0AH,'$'
+    p4 db 'Please enter code_num :',0DH,0AH,'$'
+    p5 db 'Please enter ROW-NUM :',0DH,0AH,'$'
+    BREAK DB 10, 13,'$'
+    PR_2  DB  'Please enter key saerch : ',0DH,0AH,'$'
+    PR_1  DB  'Enter the array row by row : ',0DH,0AH,'$'
+    PR_3  DB   0DH,0AH,'The key saerch finded :) ',0DH,0AH,'$'
+    PR_5  DB  'The key saerch NOT finded :( ',0DH,0AH,'$'
+    PR_4  DB  'MOHAMMAD AHMADI 9612325006 : ',0DH,0AH,'$'
+    PR_6  DB  'NEW ROW : ','$'
+    PR_7  DB  '========================================= : ',0DH,0AH,'$'
+    PR_8  DB  '####****THANKS FOR TIME****#### : ',0DH,0AH,'$'
+    ;/--------------------------------------------------MAIN DATA---------
+    str1 db 80 dup('$'),'$' ;/NAME
+         db 80 dup('$'),'$' ;/NAME
+         db 80 dup('$'),'$' ;/NAME
+         db 80 dup('$'),'$' ;/NAME
+         db 80 dup('$'),'$' ;/NAME
+         db 80 dup('$'),'$' ;/NAME
+         db 80 dup('$'),'$' ;/NAME
+         db 80 dup('$'),'$' ;/NAME
+  
+    STR2 db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family
+         db 80 dup('$'),'$' ;/family   
+         db 80 dup('$'),'$' ;/family
+         
+    str3 db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         db 80 dup('$'),'$' ;/age
+         
+    str4 db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+         db 80 dup('$'),'$' ;/numbers code
+    ;/-------------------------------------------------TEMPS--------------
+    
+    ROW_NUM DB 0 ,'$'
+    count dW 0      ;/NUMBER ROW FOR SEARCH 
+    COUNT2 DW 0 ;/FOR NOT FIND
+    COUNT3 DW 0  ;/NUMBER ROW FOR LOOP SEARCH FOR COMPARE TWO STRINGS 
+    TEMP DB 80 DUP('$')  ;/KEY SEARCH 
+
+datasg  ends
+
+codesg  segment para common 'code'
+main    proc    far
+assume  ds:datasg,cs:codesg,es:datasg  
+
+
+        MOV AX,dataSG
+        MOV DS,AX
+        MOV ES,AX
+        ;/----------------------CLEAR SEG
+        XOR AX ,AX
+        XOR BX ,BX
+        XOR DX, DX
+        XOR SI, SI
+        XOR DI , DI
+        
+        ;/------------------------------------MAIN
+        CALL CLS ;/CHANGE COLOR
+        CALL INPUT
+        CALL CLS ;/CLEAR
+        CALL SEARCH 
+        ;CALL CLS ;/CLEAR
+        ;CALL PRINT
+        ;/------------------------------------END MAIN
+  ; mov ah,4cH                          ;/stop program
+   ; int 21H  
+        
+ MAIN ENDP
+   ;----------------------------------------------------------INPU
+   
+   INPUT PROC
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+    ;/...................................................CODE
+    
+     PRINTSTR P5  ;/PRINT ROW NUM
+      
+     ;===========================INSERT NUMBERS OF ROW NEEDED 
+     MOV ROW_NUM , 0
+     
+     MOV AH , 01H
+     INT 21H 
+     AND AL,0FH           ;convert from ascii value to real value
+     MOV ROW_NUM , AL
+    ;=================================PRINT FIRST 
+     PRINTSTR BREAK  ;/BREAKLINE
+     
+     PRINTSTR PR_1  ;/PRINT INSERT ROW BY ROW
+     
+     ;================================CLEAR SABAT
+     XOR CX,CX
+     MOV cl , ROW_NUM
+     MOV ch , 00
+     MOV DI , 00
+     MOV COUNT,30H
+     XOR AX,AX
+     XOR SI, SI 
+     ;==========================================LOOP1 GIVE INPUT
+LOP1:INC COUNT
+     PRINTSTR PR_6  ;/PRINT NEW ROW
+     
+     PRINTSTR COUNT  ;/PRINT COUNTER ROW
+     
+     PRINTSTR BREAK  ;/BREAKLINE
+     
+     ;////////////////////////
+     PRINTSTR P1  ;/PRINT NAME
+     
+     ;
+     GETSTR1 STR1[DI] ;/TAKE NAME
+     
+     PRINTSTR BREAK  ;/BREAKLINE
+     XOR AX, AX
+     XOR DX, DX
+     ;/////////////////////     
+     PRINTSTR P2  ;/PRINT FAMILY
+     
+     ;
+     GETSTR1 STR2[DI] ;/TAKE FAMILY
+     
+     PRINTSTR BREAK  ;/BREAKLINE
+     XOR AX, AX
+     XOR DX, DX
+     ;/////////////////////
+     PRINTSTR P3  ;/PRINT AGE
+     
+     ;
+     GETSTR1 STR3[DI] ;/TAKE AGE
+     
+     PRINTSTR BREAK  ;/BREAKLINE
+     XOR AX, AX
+     XOR DX, DX
+     ;/////////////////////
+     PRINTSTR P4  ;/PRINT CODE NUM
+     
+     ;
+     GETSTR1 STR4[DI] ;/TAKE CODE NUM
+     
+     PRINTSTR BREAK  ;/BREAKLINE
+     XOR AX, AX
+     XOR DX, DX
+     ;/////////////////////
+     PRINTSTR PR_7 ;PRINT =======================================
+      
+      ADD DI , 80 
+    loop lop1
+    ;/...................................................END CODE
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into   
+    ret
+       
+ INPUT ENDP
+   ;----------------------------------------------------------PRINT
+   
+   PRINT PROC
+  ; PUSH AX                        ; push BX onto the STACK
+  ; PUSH CX                        ; push CX onto the STACK
+  Equal: PUSH BX                        ; push Di onto the STACK
+    ;/...................................................CODE
+     
+     PRINTSTR PR_3  ;/PRINT KEY SEARCH FINDED
+     
+     PRINTSTR BREAK  ;/BREAKLINE
+     ;==========================================
+     MOV COUNT2,01
+     XOR AX ,AX
+     MOV AX , 80
+     MUL COUNT
+     MOV DI , AX
+     
+     
+     ;////////////////////////
+     PRINTSTR1 STR1[DI] ;/PRINT NAME
+     ;
+     PRINTSTR BREAK  ;/BREAKLINE
+     
+     XOR AX, AX
+     XOR DX, DX
+     ;/////////////////////     
+     PRINTSTR1 STR2[DI] ;/PRINT FAMILY
+     ;
+     PRINTSTR BREAK  ;/BREAKLINE
+     
+     XOR AX, AX
+     XOR DX, DX
+     ;/////////////////////
+     PRINTSTR1 STR3[DI] ;/PRINT AGE
+     
+     ;
+     PRINTSTR BREAK  ;/BREAKLINE
+     
+     XOR AX, AX
+     XOR DX, DX
+     ;/////////////////////
+     
+     PRINTSTR1 STR4[DI]  ;/PRINT NUM CODE
+
+     ;
+     PRINTSTR BREAK  ;/BREAKLINE
+     
+     XOR AX, AX
+     XOR DX, DX
+     ;///////////////////// 
+     PRINTSTR PR_7   ;/PRINT =================/  
+    
+    ;/...................................................END CODE
+    POP BX                         ; pop a value from STACK into DI
+    JMP JAM2
+  ; POP CX                         ; pop a value from STACK into CX
+  ; POP BX                         ; pop a value from STACK into   
+    ret
+       
+ PRINT ENDP
+   ;----------------------------------------------------------SEARCH
+   
+   SEARCH PROC
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+    ;/...................................................CODE
+    
+     PRINTSTR PR_2  ;/PRINT INSERT KEY SEARCH
+  
+     MOV temp , '$'
+     XOR ax,ax
+     XOR dx,dx
+
+     
+     GETSTR TEMP  ;/PRINT INSERT KEY SEARCH
+     
+     ;==========================================
+     MOV cl , ROW_NUM
+     mov ch , 00
+     MOV BX , 00
+     MOV COUNT, 00
+     MOV COUNT3, CX
+     XOR CX,CX
+     XOR AX,AX 
+     ;MOV CX, 80
+     
+LOP3:
+     ;////////////////////////
+     LEA DI , TEMP
+     ADD  DI , 2  
+     LEA  SI , STR1[BX]
+     ADD  SI , 2  
+    
+    MOV AL, TEMP+1       ;FOR STORING THE LENGTH OF THE STRING
+    MOV CL, STR1[BX]+1   ;FOR STORING THE LENGTH OF THE STRING
+    CMP AL , CL          ;IF LENGTH NOT EQUAL
+    JNE Not_Equal1
+     
+     MOV CH,00
+     REPE CMPSB
+     JNE Not_Equal1
+     JMP Equal
+  
+     ;/////////////////////     
+Not_Equal1:
+     XOR CX,CX
+     XOR AX,AX
+     XOR DI,DI
+     XOR SI,SI
+     
+     LEA DI , TEMP
+     ADD  DI , 2  
+     LEA  SI , STR2[BX]
+     ADD  SI , 2  
+    
+    MOV AL, TEMP+1       ;FOR STORING THE LENGTH OF THE STRING
+    MOV CL, STR2[BX]+1   ;FOR STORING THE LENGTH OF THE STRING
+    CMP AL , CL          ;IF LENGTH NOT EQUAL
+    JNE Not_Equal2
+     
+     MOV CH,00
+     REPE CMPSB
+     JNE Not_Equal2
+     JMP Equal
+    
+     ;/////////////////////
+Not_Equal2:
+     XOR CX,CX
+     XOR AX,AX
+     XOR DI,DI
+     XOR SI,SI
+     
+     LEA DI , TEMP
+     ADD  DI , 2  
+     LEA  SI , STR3[BX]
+     ADD  SI , 2  
+    
+    MOV AL, TEMP+1       ;FOR STORING THE LENGTH OF THE STRING
+    MOV CL, STR3[BX]+1   ;FOR STORING THE LENGTH OF THE STRING
+    CMP AL , CL          ;IF LENGTH NOT EQUAL
+    JNE Not_Equal3
+     
+     MOV CH,00
+     REPE CMPSB
+     JNE Not_Equal3
+     JMP Equal
+     
+     ;/////////////////////
+Not_Equal3:
+     XOR CX,CX
+     XOR AX,AX
+     XOR DI,DI
+     XOR SI,SI
+     
+     LEA DI , TEMP
+     ADD  DI , 2  
+     LEA  SI , STR4[BX]
+     ADD  SI , 2  
+    
+    MOV AL, TEMP+1       ;FOR STORING THE LENGTH OF THE STRING
+    MOV CL, STR4[BX]+1   ;FOR STORING THE LENGTH OF THE STRING
+    CMP AL , CL          ;IF LENGTH NOT EQUAL
+    JNE Not_Equal4
+     
+     MOV CH,00
+     REPE CMPSB
+     JNE Not_Equal4
+     JMP Equal
+     
+     ;/////////////////////
+Not_Equal4:
+     JAM2:
+      XOR CX,CX
+      XOR AX,AX
+      XOR DI,DI
+      XOR SI,SI
+      ADD BX , 80
+      INC COUNT
+      DEC COUNT3 
+    
+    CMP COUNT3 ,00
+    JNE LOP3
+    
+     
+    CMP COUNT2 ,00           ;============================IF NOT FIND
+    JNE END1
+    PRINTSTR break            ; BREAKLINE  
+
+    PRINTSTR PR_5             ; LOAD AND DISPLAY THE NOT FIND 
+    
+    mov ah,4cH                          ;/stop program
+    int 21H
+    
+END1:
+    PRINTSTR PR_8             ; load and display the string 
+    
+    PRINTSTR PR_4             ; load and display the string 
+    
+    PRINTSTR PR_8             ; load and display the string 
+    
+    mov ah,4cH                          ;/stop program
+    int 21H
+   ;/...................................................END CODE
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into   
+    ret
+       
+ SEARCH ENDP
+   ;------------------------------------------------------------CLS
+   
+   cls proc  
+    
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+   ;========================================================clear screen and chang color 
+   MOV AX,0600H    ;06 TO SCROLL & 00 FOR FULLJ SCREEN
+   MOV BH,20H    ;ATTRIBUTE 7 FOR BACKGROUND AND 1 FOR FOREGROUND ======2 IS GREEN & 0 IS BLACK
+   MOV CX,0000H    ;STARTING COORDINATES
+   MOV DX,184FH    ;ENDING COORDINATES
+   INT 10H        ;FOR VIDEO DISPLAY 
+   ;===========================================================END CLEAR
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into    
+ 
+ ret
+       
+ cls ENDP 
+  
+  ;--------------------------------------------------------------- 
+   
+end main

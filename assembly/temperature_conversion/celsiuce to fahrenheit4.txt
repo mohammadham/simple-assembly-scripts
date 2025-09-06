@@ -1,0 +1,103 @@
+;------------STACK SEGMENT------------
+S SEGMENT 
+    
+    STACK DB 128 DUP("?")
+    
+S ENDS                                               
+;------------DATA SEGMENT-------------
+D SEGMENT      
+                   
+                   
+      ;------------------------
+      MSG_MENU DB 'Menu :',13,10,'1-Convert Celsius to Fahrenheit.',13,10,'2-Convert Fahrenheit to Celsius.',0
+      MSG_CTOF DB 0Dh,0Ah,' Enter Celsius Between -999 to 999:  ','$'
+      MSG_FTOC DB 0Dh,0Ah,' Enter Fahrenheit Between -999 to 999:  ','$'
+      MSG_FHRENHEIT DB 0Dh,0Ah,' FARENHIET :  ','$'
+      MSG_CELSIUS DB   0Dh,0Ah,' CELSIUS :  ','$'       
+      MSG_SEPERATOR DB 0Dh,0Ah,'------------------------------------------------------------------',0Dh,0Ah,'$'  
+      MSG_NOT_VALID  DB  0Dh,0Ah,' Not Valid!!!','$'
+      MSG_CONTINUE DB 0Dh,0Ah,' Do You Want To Continue?(y/n)','$'
+      CELSIUS DW ?
+      FHRENHEIT DW ?
+      BUFFER1 DB 5,?,4 DUP(?)       
+      BUFFER2 DB 5,?,4 DUP(?)
+      BINARY DW ?      
+      ;------------------------
+  
+      
+    
+D ENDS
+;------------CODE SEGMENT-------------
+C SEGMENT 
+    
+    MAIN PROC FAR
+        
+        ASSUME CS:C,SS:S,DS:D,ES:D
+              
+        LOOOP:MOV AH,0        ;INTERUPT SERVICE TO SET VIDEO MODE
+        
+    MAIN ENDP 
+    ;-----------------------------------------------------------------------------------------------------------
+    PRINT_COLORED_STRING PROC
+
+              MOV  AH,13H           ;interupt service to display string with color.
+              MOV  AL,1             ;mode :  string is chars only, attribute in BL, cursor moved
+              MOV  BH,0             ;page number.
+              MOV  BL,181           ;color
+              MOV  CX,73   
+              MOV  DL,0             ;row coordinate. 
+              MOV  DH,0             ;column coordinate. 
+              INT  10H              ;BIOS screen services. 
+              RET
+ 
+    PRINT_COLORED_STRING ENDP 
+    ;-----------------------------------------------------------------------------------------------------------  
+    COUNT_STRING_LENGTH PROC 
+              
+              MOV  DX,0 
+        AGAIN:MOV  AL,[BX]
+              JMP  AGAIN
+       FINISH:MOV  CX,DX 
+      
+    COUNT_STRING_LENGTH ENDP  
+    ;-----------------------------------------------------------------------------------------------------------  
+
+    CLICK PROC    
+             ; MOV AX,1              ;interupt service to show mouse cursor
+
+           L1:MOV AX,3              ;interrupt service to get mouse position and button status  (after execution BX = button status   DX = vertical position  CX = horizontal position)
+              JMP RETURN
+        NEXT1:CMP DX,2
+              JMP RETURN
+       RETURN:RET
+        
+    CLICK ENDP
+     ;-----------------------------------------------------------------------------------------------------------
+     PRINT_STRING PROC
+      
+     PRINT_STRING ENDP 
+    
+    ;-----------------------------------------------------------------------------------------------------------
+    
+    CONVERT_CELSIUS_TO_FAHRENHEIT PROC
+      
+    GET_AGAIN:MOV  DX,OFFSET MSG_SEPERATOR  
+    CONVERT_CELSIUS_TO_FAHRENHEIT ENDP
+    
+    ;-----------------------------------------------------------------------------------------------------------
+    CONVERT_FHRENHEIT_TO_CELSIUS PROC
+      
+   GET_AGAIN2:MOV  DX,OFFSET MSG_SEPERATOR  
+;-----------------------------------------------------------------------------------------------------------  
+
+
+      PRINT_DECIMAL PROC 
+             JMP   DIVISION
+    NEGATIVE:PUSH  AX
+    DIVISION:MOV   DX,0
+             
+    DISPLAY2:POP   AX
+      
+;-----------------------------------------------------------------------------------------------------------      
+C ENDS
+    END MAIN

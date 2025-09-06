@@ -1,0 +1,505 @@
+
+stacksg segment para stack ;'stack'
+   sb    db      1024 dup('0')
+stacksg ends
+;---------------------------------
+datasg  segment para common 'data'   
+                      
+list	     db 'Menu :',13,10,'1:Add student    ', 13,10,'2:Remove student ',10,13,'3:Defrag         ',10,13,'4:Search         ',10,13,'5:Load from file ',10,13,'6:Save to file   ',10,13,'7:Exit           ',0	
+choice 	     db 10,13,"Enter your choice: $"	
+name1        db 10,13,"Enter Name: $"	
+Family       db 10,13,"Enter Family: $"
+Stu_no       db 10,13,"Enter Student NO.: $"	
+message1     db 10,13,"Press 'r' for Repeat or 'e' for Exit: $"
+message2     db 10,13,"Press ANY KEY FOR CONTINUE : $"		
+data         db  30,?,30 dup ('$'),'$'
+RETURN_DATA  DB  30,?,30 dup ('$') 
+buf1 db "temp.txt",00h
+    buf2 db 0ah, "File not found...$"
+    buf3 db 0ah, "File opened successfully...$"
+    buf5 db 0ah, "Error closing file..$"
+    buf6 db 0dh, 0ah, "File closed successfully...$"
+index        dw  0 
+TEMP_INDEX   DW 0
+TEMP_INDEX_2   DW 0
+stu_db  db  1024 dup('$')
+BREAK DB 10,13,'$'
+datasg  ends
+;---------------------------------
+codesg  segment para common 'code'
+main    proc    far
+        assume  ds:datasg,cs:codesg,ss:stacksg;es:datasg
+		
+        mov     ax,datasg
+        mov     ds,ax
+		mov     es,ax
+		
+		;-----clear screen
+pl:		CALL CLS    
+		
+		
+		;----- print list-----
+		
+		MOV AH,0        ;INTERUPT SERVICE TO SET VIDEO MODE
+        MOV AL,3        ;MODE 0, 80X25 CHAR TEXT
+        INT 10H         ;BIOS SCREEN SERVICES   
+                 
+             
+       MOV  BP,OFFSET list
+ 
+        CALL PRINT_COLORED_STRING 
+        CALL CLICK
+		
+        JMP PL
+		;-----------------
+exit:   
+        ;-----clear screen
+    	CALL CLS
+
+
+
+        mov ax,4c00h
+        int 21h
+
+main    endp   
+
+ ;-----------------------------------------------------------------------------------------------------------
+      CLS PROC
+      
+       mov   ah,6
+		mov   al,0 ;0 blank whole window
+		mov   ch,0
+		mov   cl,0
+		mov   dh,24
+		mov   dl,79
+		mov   bh,14
+		int   10h
+        RET
+      CLS ENDP
+ ;-----------------------------------------------------------------------------------------------------------
+    PRINT_COLORED_STRING PROC
+
+              MOV  AH,13H           ;interupt service to display string with color.
+              MOV  AL,1             ;mode :  string is chars only, attribute in BL, cursor moved
+              MOV  BH,0             ;page number.
+              MOV  BL,181           ;color
+              MOV  CX,128           ;number all chars
+              MOV  DL,0             ;row coordinate. 
+              MOV  DH,0             ;column coordinate. 
+              INT  10H              ;BIOS screen services. 
+              RET
+ 
+    PRINT_COLORED_STRING ENDP 
+    ;-----------------------------------------------------------------------------------------------------------  
+    COUNT_STRING_LENGTH PROC 
+              
+              MOV  DX,0 
+        AGAIN:MOV  AL,[BX]
+              CMP  AL,'$'
+              JE   FINISH
+              INC  BX
+              INC  DX
+              JMP  AGAIN
+       FINISH:MOV  CX,DX 
+              RET     
+      
+    COUNT_STRING_LENGTH ENDP  
+    ;-----------------------------------------------------------------------------------------------------------  
+
+    CLICK PROC    
+             ; MOV AX,1              ;interupt service to show mouse cursor
+              ;INT 33H               ;mouse function services
+
+           L1:MOV AX,3              ;interrupt service to get mouse position and button status  (after execution BX = button status   DX = vertical position  CX = horizontal position)
+              INT 33H               ;mouse function services
+              CMP BX,1              ;if BX=00000001 -> left button of mouse pressed
+              JNZ L1                ;repeat until left button is pressed
+          
+              SHR DX,3              ;dividing vertical   position to 8 (each char = 8 pixels)
+              SHR CX,3              ;dividing horizontal position to 8 (each char = 8 pixels)    
+        
+              CMP CX,17             ;each menu item is 32 chars
+              JG L1 
+              CMP DX,1
+              JNZ NEXT1
+              CALL ast
+              JMP RETURN
+        NEXT1:CMP DX,2
+              JNZ NEXT2
+              CALL RST
+              JMP RETURN
+        NEXT2:CMP DX,3
+              JNZ NEXT3 
+              CALL DFD
+              JMP RETURN
+        NEXT3:CMP DX,4
+              JNZ NEXT4 
+              CALL SER
+              JMP RETURN
+        NEXT4:CMP DX,5
+              JNZ NEXT5 
+              CALL LFI
+              JMP RETURN
+        NEXT5:CMP DX,6
+              JNZ NEXT6 
+              CALL SFI
+              JMP RETURN
+        NEXT6:CMP DX,7 
+              JNZ L1                 
+              CALL EXIT
+              
+       RETURN:RET
+        
+    CLICK ENDP
+     ;-----------------------------------------------------------------------------------------------------------
+     PRINT_STRING PROC
+              
+              MOV AH,9
+              INT 21H
+              RET
+      
+     PRINT_STRING ENDP 
+    
+    ;-----------------------------------------------------------------------------------------------------------
+    
+;------------------------
+ast   proc
+        CALL CLS
+        ;------ message for data--------------
+ast1:	lea  dx,name1
+		call getdata
+		lea  dx,family
+		call getdata
+		lea  dx,Stu_no
+		call getdata
+		mov stu_db[bx-1],';'
+		
+ast2:	lea dx,message1
+		mov ah,9
+		int 21h
+		
+		mov ah,1
+		int 21h
+		
+    	cmp al,'r'
+		je ast1
+		cmp al,'e'
+		jne ast2
+		
+		
+        ret 
+ast   endp
+;------------------------
+rst   proc
+  RST_L0:
+      CALL CLS
+      LEA DX , STU_NO
+      CALL PRINT_STRING
+      LEA DX,DATA
+      CALL GET_STRING_FROM_USER
+      MOV TEMP_INDEX,0
+      CALL SEARCH     
+      MOV BX , TEMP_INDEX
+      LEA SI , STU_DB[BX]
+      
+      RST_L1:
+        CMP [SI] , ';'
+        JE EXIT_RST_L1
+        MOV [SI] , ' '
+        INC  SI 
+        
+        JMP RST_L1
+      
+        
+   EXIT_RST_L1:
+       MOV [SI] , ' '
+       Rst_L2:	lea dx,message1
+		mov ah,9
+		int 21h
+		
+		mov ah,1
+		int 21h
+		
+    	cmp al,'r'
+		je RST_L0
+		cmp al,'e'
+		jne EXIT_RST_L1 
+        ret 
+rst   endp
+;------------------------
+dfd   proc
+         LEA SI , STU_DB
+         LEA DI , STU_DB
+         DFD_L1:
+         CMP [DI],'$'
+         JE DFD_EXIT
+         CMP [DI],' '
+         JE DFD_CON_1
+         
+         MOV AX , [DI]
+         MOV AH , 0
+         MOV [SI],AL
+         
+         CMP SI , DI
+         JE DFD_CON
+            MOV [DI] , '$'
+        DFD_CON:
+         INC SI 
+         
+         INC DI 
+         JMP DFD_L1
+         DFD_CON_1:
+         MOV [DI],'$'
+         INC DI 
+         JMP DFD_L1
+         DFD_EXIT:	
+         lea dx,message2
+		mov ah,9
+		int 21h
+		
+		mov ah,1
+		int 21h
+		
+    	
+         
+        ret 
+dfd   endp
+;------------------------
+ser   proc
+     SER_L0:
+      CALL CLS
+      LEA DX , STU_NO
+      CALL PRINT_STRING
+      LEA DX,DATA
+      CALL GET_STRING_FROM_USER
+      MOV TEMP_INDEX,0
+      CALL SEARCH     
+      LEA DX  ,BREAK
+      CALL PRINT_STRING
+      LEA DX  ,RETURN_DATA
+      CALL PRINT_STRING
+        
+   EXIT_SER_L1:
+       
+       SER_L2:
+       	lea dx,message1
+		mov ah,9
+		int 21h
+		
+		mov ah,1
+		int 21h
+		
+    	cmp al,'r'
+		je SER_L0
+		cmp al,'e'
+		jne EXIT_SER_L1 
+        ret      
+        
+ser   endp
+;------------------------
+lfi   proc
+    
+    ; open file first, to get "file handle"
+    mov     ax,3D00h        ; ah = 3Dh (open file), al = 0 (read only mode)
+    lea     dx,buf1      ; ds:dx = pointer to zero terminated file name string
+    int     21h             ; call DOS service
+    jc      fileError
+    ; ax = file handle (16b number)
+
+    ; now set the DOS internal "file pointer" to the end of opened file
+    mov     bx,ax           ; store "file handle" into bx
+    mov     ax,4202h        ; ah = 42h, al = 2 (END + cx:dx offset)
+    xor     cx,cx           ; cx = 0
+    xor     dx,dx           ; dx = 0 (cx:dx = +0 offset)
+    int     21h             ; will set the file pointer to end of file, returns dx:ax
+    jc      fileError       ; something went wrong, just exit
+    ; here dx:ax contains length of file (32b number)
+
+    ; close the file, as we will not need it any more
+    mov     cx,ax           ; store lower word of length into cx for the moment
+    mov     ah,3Eh          ; ah = 3E (close file), bx is still file handle
+    int     21h             ; close the file
+    ; ignoring any error during closing, so not testing CF here   
+        ; BTW, int 21h modifies only the registers specified in documentation
+    ; that's why keeping length in dx:cx registers is enough, avoiding memory/stack
+
+    ; display dx:cx file length in hexa formatting to screen
+    ; (note: yes, I used dx:cx for storage, not cx:dx as offset for 42h service)
+    push cx
+       ; open file first, to get "file handle"
+    mov     ax,3D00h        ; ah = 3Dh (open file), al = 0 (read only mode)
+    lea     dx,buf1      ; ds:dx = pointer to zero terminated file name string
+    int     21h             ; call DOS service
+    jc      fileError
+    ; ax = file handle (16b number)
+
+    ; now set the DOS internal "file pointer" to the end of opened file
+    
+    mov     bx,ax           ; store "file handle" into bx    
+    mov ax,00h                             ;; read-only mode
+    mov     ah,3fh        ; al =40 h for read 
+    ;pop cx                 ;; how many bytes you want to read
+    mov dx,offset stu_db  ;; where you want to store that data (see note on Offset above) 
+    int     21h             ; will set the file pointer to end of file, returns dx:ax
+    jc      fileError       ; something went wrong, just exit
+    ; here dx:ax contains length of file (32b number)
+
+    ; close the file, as we will not need it any more
+    
+    mov     ah,3Eh          ; ah = 3E (close file), bx is still file handle
+    int     21h             ; close the file
+    ; ignoring any error during closing, so not testing CF here   
+
+    
+    fileError:
+        ret 
+lfi   endp
+;------------------------
+sfi   proc      
+    
+    lea dx, buf1
+    mov ah, 3dh
+    mov al, 02h     ; open in write mode
+    int 21h
+
+   ; jz stop 
+    ;lea dx, buf2
+    ;call print_string
+    ;jmp last
+stop :
+
+    mov bx, ax
+    lea dx, buf3
+    call print_string
+    push bx                 
+    lea bx , stu_db
+    call COUNT_STRING_LENGTH
+    pop bx
+    
+    mov ah,40h
+    ;mov cx,000ah
+    lea dx,stu_db
+    int 21h
+
+
+
+    mov ah, 3eh
+    int 21h
+
+
+    ;jz success
+    ;lea dx, buf5
+    ;call print_string
+    ;jmp last
+success :
+        lea dx, buf6
+    call print_string      
+    last:
+    
+        ret
+sfi   endp
+;------------------------
+SEARCH PROC   
+    ;MOV TEMP_INDEX , 0
+    MOV BX, 0   
+    
+    FIRST:
+        MOV TEMP_INDEX , BX
+        CALL CON_1 
+        INC BX
+        CALL CON_1
+        INC BX
+        LEA SI , DATA
+        MOV CX , 0
+        INC SI
+        MOV CX , [SI]
+        MOV CH , 0
+        INC SI
+    L2: MOV AX , 0
+        MOV AX , [SI]
+        CMP AL , STU_DB[BX]
+        JNE CON_2  
+        INC SI 
+        INC BX
+        LOOP L2         
+    
+        MOV BX , TEMP_INDEX
+        LEA SI , STU_DB[BX]
+        MOV CX , 0
+        LEA DI ,RETURN_DATA
+    L3:
+        CMP [SI] , ';'
+        JE EXIT_SEARCH_LOOP  
+        MOV AX , 0
+        MOV AX, [SI]  
+         
+        MOV [DI] , AL
+        INC SI 
+        INC DI    
+        JMP L3
+   CON_2:
+   CMP STU_DB[BX],';'
+   JE CON_2_EXIT
+   INC BX
+   JMP CON_2
+   CON_2_EXIT:
+   INC BX 
+   JMP FIRST
+        
+        
+  EXIT_SEARCH_LOOP: 
+  MOV [DI] , '$'
+  RET      
+    
+    SEARCH ENDP
+;------------------------
+CON_1 PROC 
+   CON_1_L1: CMP STU_DB[BX],','
+    JE CON_1_EXIT
+    INC BX
+    JMP CON_1_L1
+   CON_1_EXIT:              
+              RET
+              
+    CON_1 ENDP
+;------------------------
+getdata  proc
+          ;------ message for data--------------
+		mov ah,9
+		int 21h
+		;----- get input string
+		mov ah,0ah
+		lea dx,data
+		int 21h
+		;---------------------
+		mov bx,index   ;bx index from stu_db
+		lea si,data+2
+		lea di,stu_db[bx]
+		mov cl,data+1
+		mov ch,0
+		add bx,cx
+		cld
+		rep movsb
+		mov stu_db[bx],','
+		inc bx
+		mov index,bx
+        ;---------------------
+         ret
+getdata  endp       
+
+;-----------------------------------------------------------------------------------------------------------
+    GET_STRING_FROM_USER PROC
+              
+              
+              MOV AH, 0AH
+              INT 21H         
+              RET 
+              
+    GET_STRING_FROM_USER ENDP
+    ;----------------------------------------------------------------------------------------------------------- 
+  
+      
+;-----------------------------------------------------------------------------------------------------------   
+codesg  ends
+        end        main
+       

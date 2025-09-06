@@ -1,0 +1,480 @@
+                                                               ; SEARCH BY CHEK SEARCH WORD == INPUT WORD 
+
+
+stacksg segment para stack 
+   sb    db       80 dup('0')
+  
+stacksg ends
+
+datasg  segment para common 'data'
+  
+
+     word db 80 dup('$'),'$' ;word  
+     line db 280 dup('$'),'$' ;line  
+     SEARCHword db 80 dup('$'),'$' ;SEARCH
+     char        db ?
+     
+     filename db 80 ;file name 
+     filehandle  dw ?
+     
+     COUNT dW 00 ; found or not found  
+     COUNT1 dW 00 ; found or not found
+     WORDSIZE DW 00 
+     LINESIZE DW 00 
+     
+     
+    BREAK DB 10, 13,'$'
+    TEXTINPUTS  DB  'Enter SEARCH WORD : ',0DH,0AH,'$'
+    TEXTINPUTF  DB  'Enter FILE NAME ',0DH,0AH,'$' 
+
+    buf1 db  'Error closing file..',0DH,0AH,'$'
+    buf2 db  'File closed successfully...',0DH,0AH,'$'
+
+    strOutput db 16 dup ('$')
+ 
+
+    
+
+datasg  ends
+
+codesg  segment para common 'code'
+main    proc    far
+assume  ds:datasg,cs:codesg,es:datasg  
+
+
+        MOV AX,dataSG
+        MOV DS,AX
+        MOV ES,AX 
+        
+        
+        CALL INPUT_OPENFILE 
+        
+         XOR AX, AX                    
+         XOR SI, SI                    
+         XOR DI, DI
+       
+   
+            MOV WORDSIZE , 00
+            MOV LINESIZE , 00
+            MOV COUNT , 01
+            MOV COUNT1 , 00            
+                        
+    
+            lea si, WORD 
+            ADD SI , 2 
+
+            lea Di, line 
+            ADD DI , 2   
+            
+            
+    CALL READ        
+            
+            
+
+        
+ MAIN ENDP 
+ 
+ ;==================================================================
+ INPUT_OPENFILE  PROC
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+    ;/...................................................CODE  
+    
+        MOV AH,09H
+        LEA DX,TEXTINPUTF
+        INT 21H  
+        
+        MOV AH,0AH
+        LEA DX,FILENAME
+        INT 21H 
+        
+            lea si, FILENAME
+
+            MOV CL , FILENAME+1
+
+            MOV CH , 00
+            ADD SI , 2
+            add si , cx
+        
+            mov byte ptr [si], 0 
+        
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H 
+        
+        MOV AH,09H
+        LEA DX,TEXTINPUTS
+        INT 21H  
+         
+        MOV AH,0AH
+        LEA DX,SEARCHWORD
+        INT 21H   
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H 
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H
+        
+        
+        ;======================================== /open file
+        
+           lea di, filename
+            add di , 2
+            mov dx , di
+            mov ax,3d00h         ; open_file
+           int 21h
+            mov filehandle, ax    
+        
+    
+
+    ;/...................................................END CODE
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into   
+    ret
+       
+ INPUT_OPENFILE  ENDP 
+ 
+  ;==================================================================
+ READ  PROC
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+    ;/...................................................CODE  
+    
+        READ_LETTER:
+            mov ah, 3Fh     
+            mov bx, filehandle
+            lea dx, char
+            mov cx, 1
+
+            int 21h 
+        
+            
+            ; IF 
+          
+            CMP AX , 0      ;EOF
+            jZ ENDFILE
+
+            CMP COUNT1, 00
+            JNE NOTSPACE 
+            mov al, char  
+            cmp AL, 20h     ;SPACE    
+            jNe NOTSPACE  
+            
+
+    
+                 MOV AL, SEARCHWORD+1       
+        
+                 MOV CX, WORDSIZE  
+                 CMP AL , CL         
+                 JE SPACE  
+            
+            
+            NOTSPACE:
+            mov al, char 
+            cmp AL, 0ah     ; line feed
+            je LINEFEED 
+           
+            inc WORDSIZE
+            inc LINESIZE
+            
+
+            mov [si], AL 
+            mov [Di], AL 
+            inc si 
+            inc Di
+            
+            
+       
+
+            jmp READ_LETTER 
+            
+            ;=======================================================
+            
+            
+  SPACE:    ;CHEK FOR SEARCH KEY
+        
+        MOV BP , DI 
+        
+        
+        LEA SI , WORD 
+        ADD  SI , 2  
+        LEA  DI , SEARCHWORD
+        ADD  DI , 2  
+        
+         REPE CMPSB
+         JNE READLINE
+
+            INC COUNT1
+    
+         READLINE:         ; READY FOR LOOP
+            LEA SI , WORD
+            ADD  SI , 2
+            
+            INC WORDSIZE
+            MOV CX,WORDSIZE
+            LOP: 
+            MOV [SI],'$'
+            INC SI
+            LOOP LOP
+             
+            MOV WORDSIZE ,  01
+            
+            LEA SI , WORD
+            ADD  SI , 2 
+            
+          MOV DI , BP
+          MOV al, 20H
+          mov [Di], al 
+          INC DI 
+            
+            
+                   
+        JMP READ_LETTER
+        
+        ;============================================================= 
+        
+        
+    LINEFEED:       ; BREAK LINE CHEK FOR KEY SEARCH
+    
+        CMP COUNT1,00
+        JE LINEFEED2
+        MOV COUNT1 , 00 
+        
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H 
+        call print
+        
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H  
+        
+        MOV AH,09H
+        LEA DI,LINE
+        ADD DI , 2
+        MOV DX,DI
+        INT 21H   
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H  
+        
+        
+        JMP READY
+        
+        
+        
+    LINEFEED2:    
+        LEA DI , WORD
+        ADD  DI , 2  
+        LEA  SI , SEARCHWORD
+        ADD  SI , 2  
+        
+    
+        MOV AL, SEARCHWORD+1       
+        MOV CX, WORDSIZE  
+        CMP AL , CL         
+        JNE READY                   
+     
+         MOV CH,00
+         REPE CMPSB
+         JNE READY
+       
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H    
+                
+
+        call print
+        
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H  
+         
+        
+        MOV AH,09H
+        LEA DI,LINE
+        ADD DI , 2
+        MOV DX,DI
+        INT 21H   
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H  
+        
+         
+         READY:  ; READY FOR LOOP 
+         
+         
+         INC COUNT
+         
+            LEA SI , WORD
+            ADD  SI , 2
+            
+            INC WORDSIZE
+            MOV CX,WORDSIZE
+            LOP1: 
+            MOV [SI],'$'
+            INC SI
+            LOOP LOP1
+             
+            MOV WORDSIZE ,  00 
+            
+            LEA SI , LINE
+            ADD  SI , 2
+            
+            INC LINESIZE
+            MOV CX,LINESIZE
+            LOP2: 
+            MOV [SI],'$'
+            INC SI
+            LOOP LOP2
+             
+            MOV LINESIZE ,  00
+            
+            LEA SI , WORD
+            ADD  SI , 2 
+            
+            LEA DI , LINE
+            ADD  DI , 2
+            
+                   
+        JMP READ_LETTER
+            
+      ;================================================================
+      
+         
+    ENDFILE:            ;END OF FILE  
+    
+        CMP COUNT1,00
+        JE ENDTEXT2
+
+        MOV AH,09H
+        LEA DI,LINE
+        ADD DI , 2
+        MOV DX,DI
+        INT 21H   
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H  
+        
+        JMP EXIT
+        
+                
+  ENDTEXT2:
+        LEA SI , WORD
+        ADD  SI , 2  
+        LEA  DI , SEARCHWORD
+        ADD  DI , 2  
+        
+    
+        MOV AL, SEARCHWORD+1       
+        MOV CX, WORDSIZE  
+        CMP AL , CL         
+        JNE EXIT                  
+     
+         MOV CH,00
+         REPE CMPSB
+         JNE EXIT
+         
+        MOV AH,09H 
+        LEA DI,LINE
+        ADD DI , 2
+        MOV DX,DI
+        INT 21H   
+        MOV AH,09H
+        LEA DX,BREAK
+        INT 21H  
+EXIT:
+		
+            mov bx,filehandle
+            mov ah, 3eh
+            int 21h
+
+
+            jnc success
+             MOV AH,09H 
+             LEA DX,BUF1
+             INT 21H 
+             
+             mov ah, 4ch
+            int 21h   
+            
+             
+           
+            success :
+              MOV AH,09H 
+             LEA DX,BUF2
+             INT 21H
+          
+              mov ah, 4ch
+            int 21h   
+            
+                     
+
+    ;/...................................................END CODE
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into   
+    ret
+       
+ READ  ENDP 
+ 
+  
+ ;==================================================================
+ PRINT  PROC
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+    ;/...................................................CODE  
+    
+         mov ax, count
+         mov cx, 10
+         xor bx, bx ; Count the PUSHes
+         
+         divide:
+         xor dx, dx
+         div cx
+         push dx ; DL is a digit in range [0..9]
+         inc bx ; Count it
+         
+         test ax, ax
+         jnz divide ; EAX is not zero - so, continue...
+         
+         ; Now POP them all using BX as a counter
+         mov cx, bx
+         lea si, strOutput ; DS:SI points to your buffer
+         
+         get_digit:
+         pop ax
+         add al, '0' ; Make it ASCII
+         
+         ; Save it in the buffer
+         mov [si], al
+         inc si
+         
+         loop get_digit
+         
+         ; Store '$' to use with Func. 9h Int 21h
+         mov al, '$'
+         mov [si], al
+         
+         ; To screen...
+         lea dx, strOutput
+         mov ah, 9
+         int 21h   
+    ;/...................................................END CODE
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into   
+    ret
+       
+ PRINT  ENDP 
+ 
+  ;==================================================================
+
+
+   
+end main

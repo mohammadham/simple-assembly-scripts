@@ -1,0 +1,230 @@
+  DATA   SEGMENT
+ mass db 13,10,"Enter your work + - * / :",0DH,0AH,"$"
+    MASS2 DB "Enter a singed number (-9999 : 9999) :$" 
+    BREAK DB 10, 13,'$' 
+    T    DW 00
+    NUMBER db 6 dup('$') 
+    ;ARRAY   DW  60 DUP(0)                      
+    ;-----------------------------------------------------------------------------
+    ;YOUR DATA  
+    SIGN DB DUP('$')
+    num1 dw ?
+    num2 dw ?
+
+DATA    ENDS
+STACK   SEGMENT STACK'STACK'
+CODE    SEGMENT
+        ASSUME  CS:CODE , DS:DATA
+START:  MOV AX,DATA
+        MOV DS,AX
+;your code   
+
+     MOV AH,09H    ;PRINT MASSAGE FOR INPUT 
+     LEA DX,mass
+     INT 21H
+     MOV AH,1     ;GIVE A CHAR FOR CALCULATOR
+     INT 21H                                 
+     MOV SIGN,AL     
+     MOV AX, 0
+     CALL INPUTNUM   ;GIVE FIRST NUM1
+      MOV NUM1 ,AX                   
+      
+      MOV AH,09H    ;PRINT BREAK LINE
+     LEA DX,BREAK
+     INT 21H  
+     MOV AX,0
+     CALL INPUTNUM   ;GIVE FIRST NUM2
+      MOV NUM2 ,AX        
+      
+     MOV AH,09H    ;PRINT BREAK LINE
+     LEA DX,BREAK
+     INT 21H  
+     
+     ;SWITCH CASE FOR ACTIONS      
+     CMP SIGN ,'+'             ;ACTION SUM
+     JNE CHEK1
+      MOV AX, NUM1
+      ADD AX , NUM2
+      CALL OUTDEC            ;PRINT OUTPUT NUMBER 
+      JMP EXIT 
+   CHEK1:                    ;ACTION SUB
+     CMP SIGN ,'-'
+     JNE CHEK2
+      MOV AX, NUM1
+      SUB AX , NUM2
+      CALL OUTDEC             ;PRINT OUTPUT NUMBER 
+      JMP EXIT     
+     CHEK2:
+     CMP SIGN ,'*'             ;ACTION MUL
+     JNE CHEK3
+      MOV AX, NUM1
+      MUL NUM2
+      CALL OUTDEC            ;PRINT OUTPUT NUMBER 
+      JMP EXIT     
+     CHEK3:
+     CMP SIGN ,'/'             ;ACTION DIV
+     JNE EXIT
+      MOV AX, NUM1
+      DIV NUM2
+      CALL OUTDEC           ;PRINT OUTPUT NUMBER 
+      JMP EXIT     
+     
+     
+     
+    
+    EXIT:   
+    MOV AH,4CH                    ; return to DOS
+        INT 21H 
+
+ OUTDEC PROC
+   ; this procedure will display a decimal number
+   ; input : AX
+   ; output : none
+
+   PUSH BX                        ; push BX onto the STACK
+   PUSH CX                        ; push CX onto the STACK
+   PUSH DX                        ; push DX onto the STACK
+
+   CMP AX, 0                      ; compare AX with 0
+   JGE @START                     ; jump to label @START if AX>=0
+
+   PUSH AX                        ; push AX onto the STACK
+
+   MOV AH, 2                      ; set output function
+   MOV DL, "-"                    ; set DL='-'
+   INT 21H                        ; print the character
+
+   POP AX                         ; pop a value from STACK into AX
+
+   NEG AX                         ; take 2's complement of AX
+
+   @START:                        ; jump label
+
+   XOR CX, CX                     ; clear CX
+   MOV BX, 10                     ; set BX=10
+
+   @OUTPUT:                       ; loop label
+     XOR DX, DX                   ; clear DX
+     DIV BX                       ; divide AX by BX
+     PUSH DX                      ; push DX onto the STACK
+     INC CX                       ; increment CX
+     OR AX, AX                    ; take OR of Ax with AX
+   JNE @OUTPUT                    ; jump to label @OUTPUT if ZF=0
+
+   MOV AH, 2                      ; set output function
+
+   @DISPLAY:                      ; loop label
+     POP DX                       ; pop a value from STACK to DX
+     OR DL, 30H                   ; convert decimal to ascii code
+     INT 21H                      ; print a character
+   LOOP @DISPLAY                  ; jump to label @DISPLAY if CX!=0
+
+   POP DX                         ; pop a value from STACK into DX
+   POP CX                         ; pop a value from STACK into CX
+   POP BX                         ; pop a value from STACK into BX
+
+   RET                         ; return control to the calling procedure
+OUTDEC ENDP      
+ 
+ 
+INPUTNUM PROC NEAR 	;GIVE 4 DIGIT NUMBER STORE IN AX
+
+MOV AH,09H
+LEA DX,mass2
+INT 21H
+
+MOV AH,1
+INT 21H  
+cmp al , 0dh
+jNe CONTINUE
+MOV AX , 00
+jmp convert
+
+CONTINUE:
+cmp al , 2dh
+je manfi
+
+;----------------mosbat
+
+SUB AL,30H
+MOV AH,0
+
+ne:
+MOV BL,10
+MOV BH , 00
+MUL BX
+
+MOV Bx,Ax
+
+MOV AH,1
+INT 21H
+cmp al , 0DH  ;-------newl
+je en
+cmp al , 0AH  ;-------newl
+je en
+cmp al , ' ' ;-------space
+je en
+SUB AL,30H
+MOV AH,0
+ADD Ax,Bx
+jmp ne
+
+
+
+en:
+MOV AX,BX
+MOV BX,10  
+
+DIV BX
+
+jmp convert
+
+
+
+;------------------ manfi
+manfi:  
+
+MOV AH,1
+INT 21H
+SUB AL,30H
+MOV AH,0
+ne2:
+MOV BL,10
+MOV BH , 00
+MUL BX
+
+MOV Bx,Ax
+
+MOV AH,1
+INT 21H
+cmp al , 0DH  ;-------newl
+je en2
+cmp al , 0AH  ;-------newl
+je en2
+cmp al , ' ' ;-------space
+je en2
+SUB AL,30H
+MOV AH,0
+ADD Ax,Bx
+jmp ne2
+
+
+
+en2:
+MOV AL,BL
+MOV BL,10  
+MOV AH,0
+DIV BL
+
+not ax
+inc ax
+
+convert: 
+;MOV AH,0
+
+
+ 
+RET 
+INPUTNUM ENDP
+CODE    ENDS
+        END START

@@ -1,0 +1,33 @@
+PRINTSTR MACRO STR
+MOV AH,09H
+LEA DX,STR
+INT 21H
+ENDM  
+    
+           
+.stack 
+
+.data   
+massage db 13,10,"*********************************************$"  
+massage2 db 13,10,"          MICROCESSOR CLASS        * $"
+massage3 db 13,10,"                            * $" 
+BREAK DB 10, 13,'$'
+.code
+main proc
+	mov ax, @data
+	mov ds,ax	
+    
+    PRINTSTR massage
+    
+    PRINTSTR BREAK
+    PRINTSTR BREAK
+	 	PRINTSTR massage2
+	PRINTSTR massage3
+	
+	   
+	PRINTSTR BREAK 
+	
+	PRINTSTR massage
+	
+	
+	HLT

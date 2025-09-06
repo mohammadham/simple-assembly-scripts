@@ -1,0 +1,83 @@
+; centigrade (celsius) to fahrenheit calculation and vice-versa.
+; it may not be accurate, because of integer division.
+
+; this program prints out the result in decimal code.
+; to see result in hexadecimal or decimal form click vars.
+
+name "farenheit"
+org 100h    
+include 'emu8086.inc'  
+DEFINE_PRINT_NUM
+DEFINE_SCAN_NUM
+DEFINE_PRINT_NUM_UNS 
+
+
+jmp start
+tc dW 0    ; t celsius.
+tf dw 0    ; t fahrenheit. 
+
+    BREAK DB 10, 13,'$'
+
+;result1 db ?   ; result in fahrenheit.
+;result2 db ?   ; result in celsius.
+;
+
+start: 
+CALL SCAN_NUM
+MOV  TC,CX
+PRINTSTR BREAK
+CALL SCAN_NUM
+MOV  TF,CX   
+PRINTSTR BREAK
+XOR CX , CX
+XOR AX , AX
+; convert celsius to fahrenheit according
+; to this formula: f = c * 9 / 5 + 32
+mov cX, tc
+mov aX, 9
+imul cX
+mov cX, 5
+idiv cX
+add aX, 32
+;mov result1, al
+;mov AH, 00 
+PRINTSTR BREAK
+call print_NUM  ; print bl
+
+ PRINTSTR BREAK
+
+; convert fahrenheit to celsius according
+; to this formula: c = (f - 32) * 5 / 9
+xor ax,ax
+mov cx, tf
+sub cx, 32
+mov ax, 5
+imul cx  
+xor cx , cx
+mov cx, 9
+idiv cx
+;mov result2, al
+;mov AH, 00
+call print_NUM  ; print bl
+
+
+; wait for any key press...
+mov ah, 0
+int 16h
+ret  ; return to the operating system.
+
+
+
+
+
+ 
+PRINTSTR MACRO STR  
+push ax 
+push dx
+
+MOV AH,09H
+LEA DX,STR
+INT 21H    
+pop dx
+pop  ax
+ENDM

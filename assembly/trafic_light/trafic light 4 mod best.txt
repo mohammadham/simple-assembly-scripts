@@ -1,0 +1,131 @@
+
+
+#start=Traffic_Lights.exe#   
+#start=led_display.exe#
+
+name "traffic"
+
+mov ax, all_red
+out 4, ax
+mov     ax, 0
+out     199, ax
+
+
+mov si, offset _start
+
+
+next:
+mov ax, [si]
+out 4, ax
+mov bx, ax
+
+
+   
+cmp bx,_start
+jne l1  
+mov ax, 3
+call led
+jmp nextsit
+
+l1: cmp bx, s1 
+jne l2
+call yellow
+jmp nextsit
+
+l2: cmp bx, s2
+jne l3    
+mov ax, 2
+call led
+jmp nextsit 
+
+l3: cmp bx, s3
+jne l4
+call yellow
+jmp nextsit 
+
+l4: cmp bx, s4
+jne l5   
+mov ax, 3
+call led
+jmp nextsit
+
+l5: cmp bx, s5
+jne l6
+call yellow
+jmp nextsit
+
+l6: cmp bx, s6
+jne l7  
+mov ax, 2
+call led
+jmp nextsit 
+
+l7: cmp bx, s7
+call yellow
+
+   
+
+
+
+
+nextsit:
+add si, 2 
+cmp si, _end
+jb  next
+mov si, offset _start
+jmp next
+
+ 
+led proc
+      
+
+x1:
+  out     199, ax  
+  dec     ax
+  mov     bx,ax    
+  mov     cx, 0fh        
+  mov     dx, 4240h
+  mov     ah, 86h
+  int     15h
+  mov     ax,bx
+  cmp     ax,0
+  jne x1        
+  mov ax , 0
+  out     199, ax 
+   mov     cx, 07h        
+  mov     dx,  0A120h
+  mov     ah, 86h
+  int     15h
+
+ret
+   
+led endp  
+           
+
+yellow proc
+    
+      mov     ax,0
+      out     199, ax
+      mov     cx, 07h 
+      mov     dx, 0A120h
+      mov     ah, 86h
+      int     15h 
+
+      ret
+    
+yellow endp
+               
+
+;                        FEDC_BA98_7654_3210
+_start           dw      0000_0010_0110_0001b 
+s1               dw      0000_0010_0101_0001b 
+s2               dw      0000_0011_0000_1001b     
+s3               dw      0000_0010_1000_1001b     
+s4               dw      0000_1000_0100_1001b 
+s5               dw      0000_0100_0100_1001b 
+s6               dw      0000_0010_0100_1100b    
+s7               dw      0000_0010_0100_1010b    
+_end = $
+
+
+all_red          equ     0000_0010_0100_1001b

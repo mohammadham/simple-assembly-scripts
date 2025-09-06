@@ -1,0 +1,200 @@
+
+
+#start=Traffic_Lights.exe#   
+#start=led_display.exe#
+
+name "traffic"
+
+mov ax, all_red
+out 4, ax
+mov     ax, 20
+out     199, ax
+
+
+mov si, offset _start
+
+
+next:
+mov ax, [si]
+out 4, ax
+mov bx, ax
+
+
+   
+cmp bx,_start
+jne l1  
+mov temp , 20
+mov ax , 19
+
+call led 
+
+jmp nextsit
+
+l1: cmp bx, s1 
+jne l2 
+
+call yellow  ;1sec
+mov temp , 38
+jmp nextsit
+
+l2: cmp bx, s2
+jne l3    
+mov ax, 38
+call led
+jmp nextsit 
+
+l3: cmp bx, s3
+jne l4
+call yellow_1 ;2sec
+mov temp ,91 
+jmp nextsit 
+
+l4: cmp bx, s4
+jne l5   
+mov ax, 38
+call led
+jmp nextsit
+
+l5: cmp bx, s5
+jne l6
+call yellow
+jmp nextsit
+
+l6: cmp bx, s6
+jne l7  
+mov ax, 38
+call led
+jmp nextsit 
+
+l7: cmp bx, s7
+jne l8
+call yellow_1;2sec
+jmp nextsit
+   
+l8: cmp bx, s8
+jne l9   
+mov ax, 3
+call led
+;call led_f
+jmp nextsit
+
+l9: cmp bx, s9
+jne l10
+call yellow
+jmp nextsit
+
+l10: cmp bx, s10
+jne l11  
+mov ax, 5
+call led_f
+jmp nextsit
+l11: cmp bx, s11
+call yellow  
+
+
+
+
+nextsit:
+add si, 2 
+cmp si, _end
+jb  next
+mov si, offset _start
+jmp next
+
+ 
+led proc
+      
+    
+x1:     
+   mov     bx,ax   
+   mov ax , temp 
+  out     199, ax
+   mov     ax,bx 
+  dec temp   
+  dec     ax
+  mov     bx,ax    
+  mov     cx, 0fh        
+  mov     dx, 4240h
+  mov     ah, 86h
+  int     15h
+  mov     ax,bx
+  cmp     ax,0
+  jne x1        
+
+ret
+   
+led endp  
+           
+led_f proc
+      
+    
+x1_:     
+   mov     bx,ax   
+   mov ax , temp 
+  ;out     199, ax
+   mov     ax,bx 
+  dec temp   
+  dec     ax
+  mov     bx,ax    
+  mov     cx, 0fh        
+  mov     dx, 4240h
+  mov     ah, 86h
+  int     15h
+  mov     ax,bx
+  cmp     ax,0
+  jne x1_        
+
+ret
+   
+led_f endp
+yellow proc    ;yellow 1 sec
+    
+
+      mov     bx,ax 
+      mov ax , temp 
+  out     199, ax
+   mov     ax,bx 
+  mov     cx, 0fh        
+  mov     dx, 4240h
+  mov     ah, 86h
+      int     15h 
+       dec temp 
+      ret
+    
+yellow endp
+yellow_1 proc    ;yellow 2 sec
+    
+
+      mov     bx,ax 
+      mov ax , temp 
+  out     199, ax
+   mov     ax,bx 
+  mov     cx, 1eh        
+  mov     dx, 8480h
+  mov     ah, 86h
+      int     15h 
+       dec temp 
+      ret
+    
+yellow_1 endp
+               
+
+;                        FEDC_BA98_7654_3210
+_start           dw      0000_0010_0100_1100b    
+s1               dw      0000_0010_0100_1010b
+s2               dw      0000_0010_0110_0001b 
+s3               dw      0000_0010_0101_0001b 
+s4               dw      0000_0011_0000_1001b     
+s5               dw      0000_0010_1000_1001b     
+s6               dw      0000_1000_0100_1001b 
+s7               dw      0000_0100_0100_1001b
+s8               dw      1111_0000_0000_0000b
+s9               dw      0000_0100_1001_0010b
+s10              dw      0000_0000_0000_0000b
+s11              dw      0000_0100_1001_0010b 
+    
+_end = $
+
+
+all_red          equ     0000_0010_0100_1001b 
+temp dw 00

@@ -1,0 +1,150 @@
+;----------------------mohammad ahmadi
+DATA SEGMENT  
+temp dw ?
+T    DW ?
+RES  DB 10 DUP ('$')
+MSG1 DB "ENTER CELSIUS (ONLY IN 2 DIGITS) : $"
+MSG2 DB 10,13,"CONVERTED TO FAHRENHEIT (TEMPERATURE) : $"
+DATA ENDS 
+
+CODE SEGMENT
+ASSUME DS:DATA,CS:CODE
+START:
+MOV AX,DATA
+MOV DS,AX  
+
+LEA DX,MSG1
+MOV AH,9
+INT 21H  
+
+CALL INPUTNUM
+
+;------------------ CELSIUS to FAHRENHEIT
+MOV DX,9
+iMUL DX
+MOV BX,5
+iDIV BX
+;MOV AH,0
+ADD AX,32
+;--------------------convert hex num to dec
+LEA SI,RES
+CALL HEX2DEC
+;--------------------print msg2
+LEA DX,MSG2
+MOV AH,9
+INT 21H
+;--------------------print resualt
+LEA DX,RES
+MOV AH,9
+INT 21H
+;---------------------end
+MOV AH,4CH
+INT 21H
+
+CODE ENDS
+
+;--------------------hex2dec
+HEX2DEC PROC NEAR
+MOV CX,0
+MOV BX,10 
+
+  test ax, ax          ;Same as "cmp bl, 0"
+  jns  IsPositive
+  mov  [si], "-"         ;First display a minus sign
+  inc si
+  neg  ax              ;Turn the negative number into a positive number
+IsPositive: 
+
+LOOP1:  
+
+MOV DX,0
+DIV BX
+ADD DL,30H
+PUSH DX
+INC CX
+CMP AX,9
+
+JG LOOP1
+ADD AL,30H
+MOV [SI],AL  
+
+LOOP2: 
+POP AX
+INC SI
+MOV [SI],AL
+
+LOOP LOOP2
+RET
+HEX2DEC ENDP 
+
+INPUTNUM PROC NEAR
+
+ MOV AH,1
+INT 21H  
+
+cmp al , 2dh
+je manfi
+;----------------mosbat
+
+SUB AL,30H
+MOV AH,0
+MOV BL,10
+MUL BL
+
+MOV BL,AL
+
+MOV AH,1
+INT 21H
+cmp al , 0DH  ;-------newl
+jne ne
+MOV AL,BL
+MOV BL,10  
+MOV AH,0
+DIV BL
+
+jmp convert
+ne:
+SUB AL,30H
+MOV AH,0
+ADD AL,BL
+jmp convert
+;------------------ manfi
+manfi:  
+
+MOV AH,1
+INT 21H
+SUB AL,30H
+MOV AH,0
+MOV BL,10
+MUL BL
+
+MOV BL,AL
+
+MOV AH,1
+INT 21H 
+cmp al , 0DH  ;-------newl
+jne ne1
+MOV AL,BL
+MOV BL,10 
+MOV AH,0
+DIV BL 
+
+jmp MANFI2
+ne1:
+
+SUB AL,30H
+MOV AH,0
+ADD AL,BL
+MANFI2:
+not ax
+inc ax
+
+convert: 
+;MOV AH,0
+
+MOV T,AX
+RET
+
+INPUTNUM ENDP
+
+END START

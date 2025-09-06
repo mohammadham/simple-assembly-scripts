@@ -1,0 +1,308 @@
+ ;in this program use of emu8086 function source code
+name "my project1"
+org 100h
+jmp start    
+include 'emu8086.inc'  
+ DEFINE_PRINT_NUM
+ DEFINE_PRINT_NUM_UNS
+
+jmp start   
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+org 100h
+
+jmp start
+
+
+; define variables:
+
+
+msg db  0dh,0ah , 'example :100+200+1100*2/100=28  ',0dh,0ah,'DONT USE ENTER FROM INPUT  ',0dh,0ah,'$' 
+ten             DW      10      ; used as multiplier/divider by SCAN_NUM 
+
+; first and second number:
+num1 dw 00
+num2 dw ? 
+num3 dw ?
+
+start:
+mov dx, offset msg
+mov ah, 9
+int 21h
+
+
+; get the multi-digit signed number
+; from the keyboard, and store
+; the result in cx register:
+XOR BX,BX
+XOR CX,CX
+mov num1,00
+call my_scan_num
+
+; store first number:
+mov num1, cx  
+
+;SET OPRATOR IN BL
+chek_opr:
+cmp bl, '+'
+je summ
+
+cmp bl, '-'
+je subb
+
+cmp bl, '*'
+je mull
+
+cmp bl, '/'
+je divv
+
+
+;oprator is = and print result  and exit
+
+ mov ax, num1
+ call print_num
+ 
+exit:
+mov ah, 0
+int 16h
+
+MOV AH, 4CH                  ; return control to DOS
+ INT 21H 
+ 
+ret
+ 
+summ:
+
+XOR BX,BX
+XOR CX,CX
+mov num2,00
+call my_scan_num
+
+; store secound number:
+mov num2, cx  
+
+mov ax, num1
+add ax, num2
+mov num1,ax
+jmp chek_opr
+
+
+
+subb:
+
+XOR BX,BX
+XOR CX,CX
+mov num2,00
+call my_scan_num
+
+; store secound number:
+mov num2, cx 
+
+mov ax, num1
+sub ax, num2
+mov num1,ax
+jmp chek_opr
+
+
+
+
+mull:
+XOR BX,BX
+XOR CX,CX
+mov num2,00
+call my_scan_num
+
+; store secound number:
+mov num2, cx 
+
+mov ax, num1
+imul num2 ; (dx ax) = ax * num2. 
+mov num1, ax
+push dx
+
+jmp chek_opr
+
+
+
+
+divv: 
+
+XOR BX,BX
+XOR CX,CX
+mov num2,00
+call my_scan_num
+
+; store secound number:
+mov num2, cx 
+
+
+; dx is ignored (calc works with tiny integer numbers only).
+mov dx, 0
+mov ax, num1
+idiv num2  ; ax = (dx ax) / num2.
+cmp dx, 0
+jnz approx
+mov num1 , ax
+jmp chek_opr
+approx:  
+mov ax , num1
+call print_num    ; print ax value.
+mov al , '/'
+MOV     AH, 0Eh
+INT     10h               ; print / for float num result
+mov ax , num2
+call print_num    ; print ax value.  
+jmp exit
+
+
+
+
+
+
+
+;this function is from emu8086.inc    
+
+Pchar    MACRO   char
+        PUSH    AX
+        MOV     AL, char
+        MOV     AH, 0Eh
+        INT     10h     
+        POP     AX
+ENDM
+;--------------------------------scan_num !=scan_num in asm8086.inc  and i changed it
+
+my_SCAN_NUM        PROC    NEAR
+        PUSH    DX
+        PUSH    AX
+        PUSH    SI
+        
+        MOV     CX, 0
+
+        ; reset flag:
+        MOV     CS:make_minus, 0
+
+next_digit:
+
+        ; get char from keyboard
+        ; into AL:
+        MOV     AH, 00h
+        INT     16h
+        ; and print it:
+        MOV     AH, 0Eh
+        INT     10h
+
+        ; check for MINUS:
+        CMP     AL, '-'
+        JE      set_minus 
+        
+        
+        cmp AL, '+'
+        jE SET_OPR
+        cmp AL, '-'
+        jE SET_OPR
+        cmp AL, '/'
+        jE SET_OPR
+        cmp AL, '*'
+        jE SET_OPR
+        cmp AL, '='
+        jE SET_OPR
+                                
+        JMP NOT_OPR
+        
+set_opr: 
+        mov BL , al
+        JMP     stop_input
+not_opr:        
+        ; check for ENTER key:
+        CMP     AL, 0Dh  ; carriage return?
+        JNE     not_cr  
+        mov bl , '='
+        JMP     stop_input
+not_cr:
+
+
+        CMP     AL, 8                   ; 'BACKSPACE' pressed?
+        JNE     backspace_checked
+        MOV     DX, 0                   ; remove last digit by
+        MOV     AX, CX                  ; division:
+        DIV     CS:ten                  ; AX = DX:AX / 10 (DX-rem).
+        MOV     CX, AX
+        Pchar    ' '                     ; clear position.
+        Pchar    8                       ; backspace again.
+        JMP     next_digit
+backspace_checked:
+
+
+        ; allow only digits:
+        CMP     AL, '0'
+        JAE     ok_AE_0
+        JMP     remove_not_digit
+ok_AE_0:        
+        CMP     AL, '9'
+        JBE     ok_digit
+remove_not_digit:       
+        Pchar    8       ; backspace.
+        Pchar    ' '     ; clear last entered not digit.
+        Pchar    8       ; backspace again.        
+        JMP     next_digit ; wait for next input.       
+ok_digit:
+
+
+        ; multiply CX by 10 (first time the result is zero)
+        PUSH    AX
+        MOV     AX, CX
+        MUL     CS:ten                  ; DX:AX = AX*10
+        MOV     CX, AX
+        POP     AX
+
+        ; check if the number is too big
+        ; (result should be 16 bits)
+        CMP     DX, 0
+        JNE     too_big
+
+        ; convert from ASCII code:
+        SUB     AL, 30h
+
+        ; add AL to CX:
+        MOV     AH, 0
+        MOV     DX, CX      ; backup, in case the result will be too big.
+        ADD     CX, AX
+        JC      too_big2    ; jump if the number is too big.
+
+        JMP     next_digit
+
+set_minus:
+        MOV     CS:make_minus, 1
+        JMP     next_digit
+
+too_big2:
+        MOV     CX, DX      ; restore the backuped value before add.
+        MOV     DX, 0       ; DX was zero before backup!
+too_big:
+        MOV     AX, CX
+        DIV     CS:ten  ; reverse last DX:AX = AX*10, make AX = DX:AX / 10
+        MOV     CX, AX
+        Pchar   8       ; backspace.
+        Pchar    ' '     ; clear last entered digit.
+        Pchar    8       ; backspace again.        
+        JMP     next_digit ; wait for Enter/Backspace.
+        
+        
+stop_input:
+        ; check flag:
+        CMP     CS:make_minus, 0
+        JE      not_minus
+        NEG     CX
+not_minus:
+
+        POP     SI
+        POP     AX
+        POP     DX
+        RET
+make_minus      DB      ?       ; used as a flag.
+MY_SCAN_NUM        ENDP
+
+
+
+
+

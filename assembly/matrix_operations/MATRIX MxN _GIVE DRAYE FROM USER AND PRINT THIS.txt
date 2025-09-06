@@ -1,0 +1,214 @@
+% دریافت سطر و ستون و مقادیر ماتریس و چاپ ان 
+PRINTSTR MACRO STR
+MOV AH,09H
+LEA DX,STR
+INT 21H
+ENDM   
+
+
+GETSTR1 MACRO STR
+LEA SI , STR
+MOV DX , SI
+MOV AH, 0AH
+INT 21H
+ENDM 
+
+PRINTSTR1 MACRO STR
+
+LEA si , STR
+ADD si , 2
+MOV DX , si 
+MOV AH , 09H
+INT 21H
+ENDM
+PRINTCH MACRO STR
+
+MOV DL , STR
+MOV AH , 02H
+INT 21H
+ENDM 
+
+                              
+    
+           
+.stack 
+
+.data
+	ROW dw ?
+	CUL dw ? 
+	mass db 13,10,"Enter a unsinged number !! $"
+    NUMBER db 6 dup('$') 
+	massage db 13,10,"Enter number for$"  
+	massage1_1 db 13,10,"Row :$"
+	massage1_2 db 13,10," Col :$"
+	massagerow1 db 13,10,"Enter numbers for raw with space: $"
+	 BREAK DB 10, 13,'$'
+	massage3 db 13,10,"matrix: $"
+	buffer db 100 dup('$') 
+.code
+main proc
+	mov ax, @data
+	mov ds,ax	
+l:
+	PRINTSTR massage
+	 
+	PRINTSTR massage1_1
+	
+	 
+	CALL input_unsinged_num
+	MOV ROW , AX
+      
+    PRINTSTR massage1_2
+	
+    CALL input_unsinged_num 
+    MOV CUL,AX
+    
+    
+	
+	cmp ROW, 99
+	jg l
+	cmp ROW, 1
+	jl l
+	cmp CUL, 99
+	jg l
+	cmp CUL, 1
+	jl l
+	  
+
+	PRINTSTR massagerow1
+
+
+ ;   
+	GETSTR1 buffeR
+
+	
+	PRINTSTR massage3
+	
+	
+	mov cl, buffer[1]
+	mov ch,0 
+	
+	mov si , 2
+	
+	
+	push ROW 
+
+
+lOP1:	
+	PRINTSTR break
+
+	mov bx, CUL
+lOP2:	
+	mov al, buffer[si]
+	cmp al, ' '
+	je space 
+	cmp al, '-'
+	je  lAB1
+	cmp al, 57
+	jg  end1
+	cmp al, 48
+	jl  end1
+	
+lAB1:
+    PRINTCH AL
+	inc si
+	dec cx
+	cmp cx, 0
+	jNe LOP2
+	DEC BX
+	JMP END1
+space:
+	PRINTCH AL
+	PRINTCH AL
+	inc si
+
+	dec bx  
+	dec cx
+	cmp cx, 0
+	je end1
+	
+	cmp bx,0
+	jne lOP2 
+	
+	dec ROW
+	cmp ROW,0
+	jne lOP1 
+	JMP END
+end1:
+CMP ROW ,0
+JNGE END 
+CMP BX , CUL
+JE END3 
+CMP BX , 0
+JG END2
+
+ JMP EL1
+END2: 
+CMP BUFFER[SI-1],' '
+JE END3 
+
+MOV AL  , ' ' 
+PRINTCH AL  
+PRINTCH AL
+JMP END3
+
+EL1:
+DEC ROW
+CMP ROW , 0
+JE END
+PRINTSTR break
+mov bx, CUL
+
+END3:
+MOV AL ,'0'
+PRINTCH AL
+DEC BX
+CMP BX,0
+JE  EL1 
+MOV AL  , ' ' 
+PRINTCH AL 
+PRINTCH AL 
+JMP END3
+
+
+
+end:   
+
+    pop ROW	
+	hlt
+	
+iNput_unsinged_num proc near
+    
+    mov ax,00
+    ll1:
+    GETSTR1 NUMBER
+	mov si , 02   
+	mov ax,00
+	cmp NUMBER[si],'-'
+	jns mosbat
+	PRINTSTR mass
+	
+	mov ax , 00
+	jmp ll1
+	
+	mosbat:
+	mov bx, 00
+	mov bl , NUMBER[si]
+	CMP BL , 57
+	JG EX1
+	CMP BL , 48
+	JL EX1
+	sub bl , 30h
+	add ax, bx
+	inc si   
+	cmp NUMBER[si], 57
+	jg ex1
+	cmp NUMBER[si], 48
+	jl ex1 
+	mov bx , 10
+	mul bx
+	jmp mosbat 
+ex1:                                
+RET
+
+iNput_unsinged_num ENDP

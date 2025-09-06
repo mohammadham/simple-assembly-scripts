@@ -1,0 +1,91 @@
+.MODEL SMALL  
+.STACK 100H 
+
+.DATA  
+   
+STRING DB 32 dup("$")
+STRING2 DB 32 dup("$") 
+BREAK DB 10, 13,'$' 
+  
+.CODE  
+MAIN PROC FAR  
+MOV AX,@DATA  
+MOV DS,AX  
+  
+CALL REVERSE
+
+  
+LEA DX,BREAK
+MOV AH, 09H  
+INT 21H  
+
+
+LEA DX,STRING2    
+MOV AH, 09H  
+INT 21H  
+  
+
+MOV AH, 4CH 
+INT 21H  
+  
+MAIN ENDP  
+REVERSE PROC    
+    
+    LEA SI , STRING
+    MOV DX, SI
+    MOV AH, 0AH
+    INT 21H
+    
+    MOV SI, OFFSET STRING  
+    
+    MOV CX, [SI+1] 
+    XOR CH,CH
+    
+    ADD SI , 2
+    LOOP1: 
+    
+    MOV AX, [SI]  
+    CMP AL, 0dh
+    JE LABEL1 
+    CMP AL, '$'
+    JE LABEL1  
+  
+    PUSH [SI]  
+  
+    INC SI  
+   
+  
+    JMP LOOP1  
+  
+    LABEL1: 
+   
+    MOV SI, OFFSET STRING2  
+   
+        LOOP2:  
+   
+        CMP CX,0  
+        JE EXIT  
+  
+   
+        POP DX  
+  
+   
+        XOR DH, DH  
+  
+   
+        MOV [SI], DX  
+  
+   
+        INC SI  
+        DEC CX  
+             
+        JMP LOOP2 
+  
+                  
+    EXIT: 
+   
+    MOV [SI],'$ '
+    RET  
+          
+REVERSE ENDP  
+END MAIN

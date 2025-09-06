@@ -1,0 +1,246 @@
+; برنامه دریافت ابعاد ماتریس و ذخیره ان به صورت رشته و عدد و چاپ ان
+PRINTSTR MACRO STR
+MOV AH,09H
+LEA DX,STR
+INT 21H
+ENDM   
+
+
+GETSTR1 MACRO STR
+LEA SI , STR
+MOV DX , SI
+MOV AH, 0AH
+INT 21H
+ENDM 
+
+PRINTSTR1 MACRO STR
+
+LEA si , STR
+ADD si , 2
+MOV DX , si 
+MOV AH , 09H
+INT 21H
+ENDM
+PRINTCH MACRO STR
+
+MOV DL , STR
+MOV AH , 02H
+INT 21H
+ENDM 
+
+                              
+    
+           
+.stack 
+
+.data
+	ROW dw ?
+	CUL dw ? 
+	mass db 13,10,"Enter a unsinged number !! $"
+    NUMBER db 6 dup('$')  
+    number2 dw ?
+	massage db 13,10,"Enter number for$"  
+	massage1_1 db 13,10,"Row :$"
+	massage1_2 db 13,10," Col :$" 
+	MASS2 DB "Enter a singed number (-99 : 99) :$"
+	massagerow1 db 13,10,"Enter numbers for raw with space: $"
+	 BREAK DB 10, 13,'$'
+	massage3 db 13,10,"matrix: $"
+	buffer db 100 dup('$') 
+	buffer_number dw 100 dup(0) 
+.code
+main proc
+	mov ax, @data
+	mov ds,ax	
+l:
+	PRINTSTR massage
+	 
+	PRINTSTR massage1_1
+	
+	 
+	CALL input_unsinged_num
+	MOV ROW , AX
+      
+    PRINTSTR massage1_2
+	
+    CALL input_unsinged_num 
+    MOV CUL,AX
+    
+    
+	
+	cmp ROW, 99
+	jg l
+	cmp ROW, 1
+	jl l
+	cmp CUL, 99
+	jg l
+	cmp CUL, 1
+lOP1:	
+	mov bx, CUL
+lOP2:	
+	
+lAB1:
+	JMP END1
+space:
+	JMP END
+end1:
+CMP ROW ,0
+JNGE END 
+CMP BX , CUL
+JE END3 
+CMP BX , 0
+JG END2
+ JMP EL1
+END2: 
+CMP BUFFER[SI-1],' '
+JE END3 
+
+MOV AL  , ' ' 
+PRINTCH AL  
+PRINTCH AL
+JMP END3
+
+EL1:
+DEC ROW
+CMP ROW , 0
+JE END
+PRINTSTR break
+mov bx, CUL
+
+END3:
+MOV AL ,'0'
+PRINTCH AL
+DEC BX
+CMP BX,0
+JE  EL1 
+MOV AL  , ' ' 
+PRINTCH AL 
+PRINTCH AL 
+JMP END3
+
+
+
+end:   
+	
+	iNput_unsinged_num proc near
+	jmp mosbat 
+ex1:                                
+RET
+
+iNput_unsinged_num ENDP  
+
+INPUTNUM proc near	;GIVE 4 DIGIT NUMBER STORE IN AX
+PUSHA
+;PRINTSTR MASS2
+	mov si , 2
+lopp:	
+;MOV AH,1
+;INT 21H
+mov al ,buffer[si]
+inc si 
+dec cl    
+cmp al , 0dh
+jNe CONTINUE
+MOV AX , 00
+jmp convert
+
+CONTINUE:
+cmp al , 2dh
+je manfi
+
+;----------------mosbat
+
+SUB AL,30H
+MOV AH,0
+
+ne:
+MOV BL,10
+MOV BH , 00
+MUL BX
+
+MOV Bx,Ax
+
+;MOV AH,1
+;INT 21H 
+mov al , buffer[si]  
+inc si 
+dec cl  
+cmp al , 0DH  ;-------newl
+je en
+cmp al , 0AH  ;-------newl
+je en
+cmp al , ' ' ;-------space
+je en
+SUB AL,30H
+MOV AH,0
+ADD Ax,Bx
+jmp ne
+
+
+
+en:
+MOV Ax,Bx
+MOV BL,10
+mov bh , 00  
+
+DIV Bx
+
+jmp convert
+
+
+
+;------------------ manfi
+manfi:  
+
+;MOV AH,1
+;INT 21H  
+mov al , buffer[si]  
+inc si 
+dec cl 
+SUB AL,30H
+MOV AH,0
+ne2:
+MOV BL,10
+MOV BH , 00
+MUL BX
+
+MOV Bx,Ax
+
+;MOV AH,1
+;INT 21H
+mov al , buffer[si]  
+inc si 
+dec cl 
+cmp al , 0DH  ;-------newl
+je en2
+cmp al , 0AH  ;-------newl
+je en2
+cmp al , ' ' ;-------space
+je en2
+SUB AL,30H
+MOV AH,0
+ADD Ax,Bx
+jmp ne2
+
+
+
+en2:
+MOV Ax,Bx
+MOV BL,10
+mov bh , 00  
+
+DIV Bx
+not ax
+inc ax
+
+convert: 
+;MOV AH,0
+MOV buffer_number[di] , AX 
+add di ,2 
+cmp cl ,0
+jne lopp
+
+POPA  
+ret
+
+INPUTNUM ENDp

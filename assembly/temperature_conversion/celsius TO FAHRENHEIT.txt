@@ -1,0 +1,191 @@
+.MODEL SMALL
+ .STACK 100H
+
+ .DATA
+    msg1  DB  'PLEASE INSERT celsius : $'
+    RESULT  DB  0DH,0AH,'fahrenheit = $\'
+    BREAK DB 10, 13,'$'
+
+    ;tc db 10    ; t celsius.
+    
+    buffer db 7,?,6 dup(0) 
+    ;binary dw ? 
+    
+    ;result1 db ?   ; result in fahrenheit.
+    
+    
+ .CODE
+   MAIN PROC
+     MOV AX, @DATA                ; initialize DS
+     MOV DS, AX
+     
+     ; print welcome message:
+mov dx, offset msg1
+mov ah, 9
+int 21h   
+
+; input string:
+mov dx, offset buffer
+mov ah, 0ah
+int 21h    
+
+
+mov bx, 0
+mov bl, buffer[1]
+mov buffer[bx+2], 0
+
+lea    si, buffer + 2  ; buffer starts from third byte.
+call    tobin
+
+; the number is in cx register.
+; for '-1234' it's 0fb2eh
+
+;mov binary, cx
+
+jcxz stop 
+
+mov dx, offset BREAK
+mov ah, 9
+int 21h 
+mov dx, offset RESULT
+mov ah, 9
+int 21h 
+
+
+ 
+ ; convert celsius to fahrenheit according
+; to this formula: f = c * 9 / 5 + 32
+;mov cl, tc
+mov al, 9
+imul cl
+mov cl, 5
+idiv cl
+add al, 32
+;mov result1, al
+;mov bl, result1
+MOV BL , AL 
+MOV BH , 0
+mov ax, bx  
+
+call print  ; print bl
+ 
+ 
+
+  
+   
+stop: 
+
+
+     MOV AH, 4CH                  ; return control to DOS
+     INT 21H 
+
+ret ; return control to the operating system.   
+   
+print proc near   
+cmp ax, 0
+jne print_ax_r
+    push ax
+    mov al, '0'
+    mov ah, 0eh
+    int 10h
+    pop ax
+    ret 
+print_ax_r:
+    pusha
+    mov dx, 0
+    cmp ax, 0
+    je pn_done
+    mov bx, 10
+    div bx    
+    call print_ax_r
+    mov ax, dx
+    add al, 30h
+    mov ah, 0eh
+    int 10h    
+    jmp pn_done
+pn_done:
+    popa  
+    ret  
+print endp
+   
+   
+   
+   
+   
+tobin   proc    near
+        push    dx
+        push    ax
+        push    si
+      
+jmp process
+       
+;==== local variables ====      
+make_minus      db      ?       ; used as a flag.
+ten             dw      10      ; used as multiplier.
+;=========================
+
+process:       
+
+        ; reset the accumulator:
+        mov     cx, 0
+
+        ; reset flag:
+        mov     cs:make_minus, 0
+
+next_digit:
+
+    ; read char to al and
+    ; point to next byte:
+    mov     al, [si]
+    inc    si     
+
+        ; check for end of string:
+        cmp     al, 0  ; end of string?
+        jne     not_end
+        jmp     stop_input       
+not_end:
+
+        ; check for minus:
+        cmp     al, '-'
+        jne     ok_digit
+        mov     cs:make_minus, 1 ; set flag!
+    jmp     next_digit
+   
+ok_digit:
+
+        ; multiply cx by 10 (first time the result is zero)
+        push    ax
+        mov     ax, cx
+        mul     cs:ten                  ; dx:ax = ax*10
+        mov     cx, ax
+        pop     ax
+
+    ; it is assumed that dx is zero - overflow not checked!
+
+        ; convert from ascii code:
+        sub     al, 30h
+
+        ; add al to cx:
+        mov     ah, 0
+        mov     dx, cx      ; backup, in case the result will be too big.
+        add     cx, ax
+       
+        ; add - overflow not checked!
+
+        jmp     next_digit
+
+stop_input:
+
+        ; check flag, if string number had '-'
+        ; make sure the result is negative:
+        cmp     cs:make_minus, 0
+        je      not_minus
+        neg     cx
+       
+not_minus:
+
+        pop     si
+        pop     ax
+        pop     dx
+        ret
+tobin        endp

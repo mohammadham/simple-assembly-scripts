@@ -1,0 +1,96 @@
+; controlling external device with 8086 microprocessor.
+; realistic test for c:\emu8086\devices\Traffic_Lights.exe
+
+#start=Traffic_Lights.exe# 
+#start=led_display.exe# 
+#make_bin#
+
+name "traffic" 
+stack :
+b dw 8 dup(0)
+start:
+;                        FEDC_BA98_7654_3210
+situation        dw      0000_0011_0000_1100b;virtical green .horizontal red
+s1               dw      0000_0010_1000_1010b;virtical yellow .horizontal red
+s2               dw      0000_0010_0110_0001b;virtical red .horizontal right green,horizontal left red
+s3               dw      0000_0010_0101_0001b;virtical red .horizontal right yellow,horizontal left red
+s4               dw      0000_1000_0100_1001b;virtical red .horizontal left green ,horizontal right red
+s5               dw      0000_0100_0100_1001b;virtical red .horizontal left yellow,horizontal right red
+                        
+sit_end = $
+
+
+all_red          equ     0000_0010_0100_1001b
+;all_on          equ     0000_1111_1111_1111b
+
+.code
+mov ax, all_red
+out 4, ax
+xor ax,ax
+xor si,si
+  
+lea si, situation
+
+
+next:
+mov ax, [si]
+out 4, ax  
+;      FEDCBA9876543210
+cmp ax,0000001001100001b  ;horizontal right  green. virtical  red
+je la1
+cmp ax,0000100001001001b  ;horizontal left  green. virtical  red
+je la2
+cmp ax,0000001100001100b  ;virtical green .horizontal red
+je lb
+jmp x3
+
+
+la1:;horizontal right  green. virtical  red
+; wait 5 seconds (5 million microseconds)
+
+  
+mov cx , 5
+call dellay
+ jmp set
+la2:;horizontal left  green. virtical  red
+; wait 10 seconds (10 million microseconds)
+mov cx , 10
+call dellay
+jmp set
+
+x3:
+;horizontal or virtical is yellow
+; wait 2 seconds (2 million microseconds)
+
+mov cx , 2 
+call dellay
+  jmp set
+
+lb:;virtical green .horizontal red
+; wait 12 seconds (12 million microseconds)
+  mov cx , 12 
+call dellay
+
+set:
+add si, 2 ; next situation
+cmp si, sit_end
+jb  next
+mov si, offset situation
+jmp next
+
+dellay proc;set cx > 0 for dellay 
+push si      
+
+label1: 
+mov ax ,cx
+out 199, ax  
+mov bx ,cx
+  mov     cx, 0fh    
+  mov     dx, 4240h
+  mov     ah, 86h
+  int     15h  
+mov cx ,bx
+loop label1
+pop si   
+ret  
+dellay endp  
